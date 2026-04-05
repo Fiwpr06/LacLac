@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "Lắc Lắc API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Bộ sưu tập API cho hệ thống Lắc Lắc"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3100/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "foodId", "value": "" },
+    { "key": "favoriteId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nguyen Van A\",\n  \"email\": \"user@example.com\",\n  \"password\": \"StrongPass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"StrongPass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Foods",
+      "item": [
+        {
+          "name": "List Foods",
+          "request": { "method": "GET", "url": "{{baseUrl}}/foods?page=1&limit=10&sort=-createdAt" }
+        },
+        {
+          "name": "Get Food Detail",
+          "request": { "method": "GET", "url": "{{baseUrl}}/foods/{{foodId}}" }
+        },
+        {
+          "name": "Random Food",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/foods/random?priceRange=cheap&mealType=lunch"
+          }
+        },
+        {
+          "name": "Swipe Queue",
+          "request": { "method": "GET", "url": "{{baseUrl}}/foods/swipe-queue?context=solo" }
+        },
+        {
+          "name": "Filter Foods",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/foods/filter",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priceRange\": \"medium\",\n  \"mealType\": \"dinner\",\n  \"allergenExclude\": [\"peanut\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Context Foods",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/foods/context",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": \"office\",\n  \"filters\": {\n    \"priceRange\": \"cheap\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Food (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/foods",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mon Moi Lắc Lắc\",\n  \"mealTypes\": [\"lunch\"],\n  \"priceRange\": \"medium\",\n  \"ingredients\": [\"thit\", \"rau\"],\n  \"contextTags\": [\"office\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Food (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/foods/{{foodId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Cap nhat tu admin\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Food (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/foods/{{foodId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories" }
+        }
+      ]
+    },
+    {
+      "name": "Actions & User",
+      "item": [
+        {
+          "name": "Log Action",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/actions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"guest-session-001\",\n  \"foodId\": \"{{foodId}}\",\n  \"actionType\": \"swipe_right\",\n  \"context\": \"none\",\n  \"filterSnapshot\": {\n    \"priceRange\": \"cheap\"\n  },\n  \"deviceType\": \"web\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Add Favorite",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-session-id", "value": "session-001" },
+              { "key": "x-device-type", "value": "mobile" }
+            ],
+            "url": "{{baseUrl}}/favorites",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"listType\": \"favorite\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Favorites",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/favorites?listType=favorite"
+          }
+        },
+        {
+          "name": "Delete Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "x-session-id", "value": "session-001" },
+              { "key": "x-device-type", "value": "mobile" }
+            ],
+            "url": "{{baseUrl}}/favorites/{{favoriteId}}"
+          }
+        },
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-session-id", "value": "session-001" }
+            ],
+            "url": "{{baseUrl}}/reviews",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foodId\": \"{{foodId}}\",\n  \"rating\": 5,\n  \"comment\": \"Rat ngon\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Reviews by Food",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reviews?foodId={{foodId}}"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/users/me/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dietPreferences\": {\n    \"type\": \"clean\",\n    \"allergies\": [\"seafood\"]\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "item": [
+        {
+          "name": "Get Recommendations",
+          "request": { "method": "GET", "url": "{{baseUrl}}/recommendations" }
+        },
+        {
+          "name": "Get Trending",
+          "request": { "method": "GET", "url": "{{baseUrl}}/recommendations/trending?limit=10" }
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "item": [
+        {
+          "name": "Upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/media/upload",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1546069901-ba9599a7e63c\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
