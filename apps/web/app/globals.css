@@ -1,0 +1,95 @@
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: #ff6b35;
+  --brand-secondary: #2d3561;
+  --brand-accent: #ffc914;
+  --brand-surface: #fafaf8;
+}
+
+body {
+  font-family: var(--font-body), 'Segoe UI', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 201, 20, 0.24), transparent 30%),
+    radial-gradient(circle at 90% 20%, rgba(255, 107, 53, 0.2), transparent 28%),
+    linear-gradient(180deg, #fffefa 0%, #fafaf8 100%);
+  color: #2d3561;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.lac-card {
+  border-radius: 20px;
+  border: 1px solid #f0e8de;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(45, 53, 97, 0.08);
+}
+
+.lac-stage {
+  border-radius: 24px;
+  border: 1px solid #f0e8de;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.95), rgba(255, 246, 235, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 34px rgba(45, 53, 97, 0.1);
+}
+
+.food-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: 24px;
+  border: 1px solid #eedfcc;
+  background: #fffdf9;
+  padding: 14px;
+  box-shadow: 0 18px 34px rgba(45, 53, 97, 0.14);
+}
+
+.food-card-media {
+  display: grid;
+  place-items: center;
+  min-height: 230px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(145deg, #ffedd9, #ffe4c8);
+  background-size: cover;
+  background-position: center;
+}
+
+.food-card-media-fallback {
+  padding: 0 16px;
+  text-align: center;
+  font-weight: 800;
+  color: #2d3561;
+}
+
+.food-chip {
+  border-radius: 999px;
+  border: 1px solid #f0e0cd;
+  background: #fff5e9;
+  padding: 4px 12px;
+}
+
+.food-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 12px;
+  border: 1px dashed #f0dcc4;
+  background: #fff8ef;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2d3561;
+}
