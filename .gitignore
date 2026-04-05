@@ -1,0 +1,33 @@
+node_modules
+.pnpm-store
+.turbo
+.next
+dist
+coverage
+*.tsbuildinfo
+# Env files (keep examples only)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Temp/local scripts and caches
+.tmp-*
+.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode
+
+# Expo
+.expo
+.expo-shared
+apps/mobile/.expo
