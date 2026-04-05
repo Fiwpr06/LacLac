@@ -1,0 +1,14 @@
+{
+  "name": "@lac-lac/api-client",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "generate": "echo 'OpenAPI generation placeholder - integrate openapi-generator-cli'",
+    "lint": "echo 'api-client lint: no-op'",
+    "test": "echo 'api-client test: TODO'"
+  }
+}

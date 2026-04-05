@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Lắc Lắc API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3100/api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+      responses:
+        '200':
+          description: OK
+  /foods:
+    get:
+      summary: Get foods
+      responses:
+        '200':
+          description: OK
+  /foods/random:
+    get:
+      summary: Random food
+      responses:
+        '200':
+          description: OK
+  /actions:
+    post:
+      summary: Log user action
+      responses:
+        '200':
+          description: Accepted
