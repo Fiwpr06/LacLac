@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/.expo
+**/.expo-shared
+**/build
+**/.cache
+.git
+.gitignore
+.vscode
+.env
+.env.*
+.DS_Store

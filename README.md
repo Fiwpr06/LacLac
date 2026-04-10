@@ -115,6 +115,15 @@ Gateway Nginx (mặc định khi chạy Docker): http://localhost:3100
 
 Nếu máy bạn không bị chặn cổng 3000 và muốn dùng lại 3000, đặt `GATEWAY_PORT=3000` trước khi `docker compose up` hoặc chạy với `--env-file ../.env`.
 
+## Dev nhanh (chỉ hạ tầng)
+
+Chạy MongoDB + Redis bằng Docker, còn services/apps chạy local để hot-reload nhanh:
+
+```bash
+cd infra
+docker compose -f docker-compose.dev.yml up -d
+```
+
 ## Chạy local từng phần
 
 Backend services:
@@ -133,6 +142,12 @@ Apps:
 corepack pnpm --filter mobile-app start
 corepack pnpm --filter web-app dev
 corepack pnpm --filter admin-app dev
+```
+
+Chạy nhanh mobile + APIs cần thiết (khuyến nghị để tránh lag do thiếu service):
+
+```bash
+corepack pnpm dev:mobile
 ```
 
 ## Seed dữ liệu 89 món
