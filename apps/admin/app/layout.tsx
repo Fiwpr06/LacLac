@@ -1,9 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import './globals.css';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Lắc Lắc Admin',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Lắc Lắc Admin
             </Link>
             <nav className="flex gap-4 text-sm font-semibold text-slate-700">
-              <Link href="/foods">Món ăn</Link>
+              <Link href="/">Món ăn</Link>
               <Link href="/categories">Danh mục</Link>
             </nav>
           </div>
