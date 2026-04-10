@@ -1,13 +1,17 @@
 import {
   ActionType,
+  BudgetBucket,
   CategoryType,
   ContextTag,
   CookingStyle,
+  CuisineType,
   DeviceType,
   DietType,
+  DishType,
   FavoriteListType,
   MealType,
   PriceRange,
+  ShakeTriggerType,
   UserRole,
 } from './enums';
 
@@ -95,6 +99,9 @@ export interface Favorite {
 
 export interface FilterSnapshot {
   priceRange?: PriceRange;
+  budgetBucket?: BudgetBucket;
+  dishType?: DishType;
+  cuisineType?: CuisineType;
   mealType?: MealType;
   dietTag?: Exclude<DietType, 'normal'>;
   category?: string;
@@ -107,6 +114,7 @@ export interface UserAction {
   foodId?: string;
   actionType: ActionType;
   context: ContextTag | 'none';
+  triggerType?: ShakeTriggerType;
   filterSnapshot: FilterSnapshot;
   deviceType: DeviceType;
   sessionDurationMs?: number;

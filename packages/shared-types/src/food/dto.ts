@@ -1,4 +1,15 @@
-import { ContextTag, CookingStyle, DietType, MealType, PriceRange } from '../common/enums';
+import {
+  BudgetBucket,
+  ContextTag,
+  CookingStyle,
+  CuisineType,
+  DeviceType,
+  DietType,
+  DishType,
+  MealType,
+  PriceRange,
+  ShakeTriggerType,
+} from '../common/enums';
 import { NutritionInfo } from '../common/entities';
 
 export interface FilterDto {
@@ -9,6 +20,37 @@ export interface FilterDto {
   allergenExclude?: string[];
   cookingStyle?: CookingStyle;
   context?: ContextTag;
+}
+
+export interface ShakeFilterDto extends FilterDto {
+  budgetBucket?: BudgetBucket;
+  dishType?: DishType;
+  cuisineType?: CuisineType;
+}
+
+export interface ShakeRequestDto {
+  sessionId: string;
+  triggerType: ShakeTriggerType;
+  deviceType: DeviceType;
+  context?: ContextTag;
+  filters?: ShakeFilterDto;
+}
+
+export interface ShakeActionHintDto {
+  sessionId: string;
+  foodId?: string;
+  actionType: 'shake_result';
+  context: ContextTag | 'none';
+  triggerType: ShakeTriggerType;
+  filterSnapshot: ShakeFilterDto;
+  deviceType: DeviceType;
+}
+
+export interface ShakeResponseDto<TFood = unknown> {
+  sessionId: string;
+  triggerType: ShakeTriggerType;
+  food: TFood | null;
+  actionHint: ShakeActionHintDto;
 }
 
 export interface ContextFilterDto {
