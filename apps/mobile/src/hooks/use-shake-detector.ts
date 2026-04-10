@@ -6,13 +6,24 @@ export const useShakeDetector = (
   config?: {
     thresholdG?: number;
     debounceMs?: number;
+    enabled?: boolean;
   },
 ) => {
-  const threshold = config?.thresholdG ?? 2.5;
+  const threshold = config?.thresholdG ?? 1.8;
   const debounceMs = config?.debounceMs ?? 1000;
+  const enabled = config?.enabled ?? true;
   const lastTriggered = useRef(0);
+  const onShakeRef = useRef(onShake);
 
   useEffect(() => {
+    onShakeRef.current = onShake;
+  }, [onShake]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     Accelerometer.setUpdateInterval(200);
 
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
@@ -21,12 +32,12 @@ export const useShakeDetector = (
 
       if (magnitude > threshold && now - lastTriggered.current > debounceMs) {
         lastTriggered.current = now;
-        onShake();
+        onShakeRef.current();
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [onShake, threshold, debounceMs]);
+  }, [threshold, debounceMs, enabled]);
 };

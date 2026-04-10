@@ -8,11 +8,39 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#FF6B35' },
-          headerTintColor: '#FFFFFF',
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTintColor: '#2D3561',
+          headerTitleStyle: { fontWeight: '700' },
+          headerShadowVisible: false,
           contentStyle: { backgroundColor: '#FAFAF8' },
         }}
-      />
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="filter"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="profile"
+          options={{
+            title: 'Cài đặt',
+          }}
+        />
+        <Stack.Screen
+          name="food/[id]"
+          options={{
+            title: 'Chi tiết món',
+          }}
+        />
+      </Stack>
     </QueryClientProvider>
   );
 }

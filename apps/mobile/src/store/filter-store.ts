@@ -10,8 +10,14 @@ type FilterStore = {
 
 const initialFilters: MobileFilter = {
   priceRange: undefined,
+  budgetBucket: undefined,
+  dishType: undefined,
+  cuisineType: undefined,
+  category: undefined,
   mealType: undefined,
   dietTag: undefined,
+  allergenExclude: undefined,
+  cookingStyle: undefined,
   context: undefined,
 };
 
