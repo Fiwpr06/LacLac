@@ -1,0 +1,34 @@
+name: lac-lac-dev
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: laclac-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: lac_lac
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - laclac-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: laclac-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - laclac-net
+
+networks:
+  laclac-net:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:
