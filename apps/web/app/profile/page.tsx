@@ -1,31 +1,171 @@
 'use client';
 
+import { useSettingsStore } from '../../src/store/settings';
 import { useFilters } from '../../src/store/filters';
+import { WebFilter } from '../../src/lib/api';
+import { useEffect, useState } from 'react';
+
+const countActiveFilters = (filters: WebFilter): number => {
+  const scalarCount = [
+    filters.priceRange,
+    filters.budgetBucket,
+    filters.dishType,
+    filters.cuisineType,
+    filters.category,
+    filters.mealType,
+    filters.dietTag,
+    filters.cookingStyle,
+    filters.context,
+  ].filter(Boolean).length;
+  return scalarCount + ((filters.allergenExclude?.length ?? 0) > 0 ? 1 : 0);
+};
 
 export default function ProfilePage() {
+  const settings = useSettingsStore();
   const { filters } = useFilters();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const isEn = settings.language === 'en';
+
+  const t = {
+    title: isEn ? 'User Settings & Profile' : 'Cài đặt & Hồ sơ',
+    desc: isEn
+      ? 'Manage your application preferences and diet profile.'
+      : 'Quản lý tùy chọn ứng dụng và hồ sơ ăn uống của bạn.',
+    system: isEn ? 'System Preferences' : 'Tùy chọn hệ thống',
+    haptic: isEn ? 'Haptic Feedback (Mobile/PWA)' : 'Phản hồi rung (Mobile/PWA)',
+    sound: isEn ? 'Application Sounds' : 'Âm thanh ứng dụng',
+    reduceMotion: isEn ? 'Reduce Motion' : 'Giảm chuyển động',
+    language: isEn ? 'English Interface' : 'Giao diện Tiếng Anh',
+    tasteProfile: isEn ? 'Taste Profile (Debugging)' : 'Hồ sơ khẩu vị (Gỡ lỗi)',
+    activeFilters: isEn ? 'Active Filters' : 'Điều kiện đang bật',
+    price: isEn ? 'Price Range' : 'Mức giá',
+    cuisine: isEn ? 'Cuisine' : 'Ẩm thực',
+    diet: isEn ? 'Diet' : 'Chế độ ăn',
+    allergens: isEn ? 'Excluded Allergens' : 'Dị ứng loại trừ',
+  };
+
+  const toListText = (values?: string | string[]) => {
+    if (!values || values.length === 0) return isEn ? 'None' : 'Chưa có';
+    if (typeof values === 'string') return values;
+    return Array.isArray(values) ? values.join(', ') : isEn ? 'None' : 'Chưa có';
+  };
 
   return (
-    <section className="space-y-4">
-      <h1 className="text-3xl font-black text-brand-secondary">Hồ sơ khẩu vị</h1>
-      <p className="text-brand-secondary/70">
-        Lắc Lắc lưu lại hành vi để chuẩn bị mô hình recommendation ở v3 (không AI ở v1).
-      </p>
-
-      <div className="lac-card grid gap-2 p-5 text-brand-secondary">
-        <p>
-          <span className="font-bold">Giá ưu tiên:</span> {filters.priceRange ?? 'chưa chọn'}
-        </p>
-        <p>
-          <span className="font-bold">Bữa ăn:</span> {filters.mealType ?? 'chưa chọn'}
-        </p>
-        <p>
-          <span className="font-bold">Dinh dưỡng:</span> {filters.dietTag ?? 'chưa chọn'}
-        </p>
-        <p>
-          <span className="font-bold">Ngữ cảnh:</span> {filters.context ?? 'chưa chọn'}
-        </p>
+    <div className="max-w-4xl mx-auto py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-extrabold text-brand-secondary mb-2">
+          {t.title}
+        </h1>
+        <p className="text-brand-muted">{t.desc}</p>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Settings Card */}
+        <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
+          <h2 className="text-xl font-bold mb-6 text-brand-secondary">{t.system}</h2>
+
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-gray-800">{t.language}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isEn}
+                  onChange={(e) => settings.setLanguage(e.target.checked ? 'en' : 'vi')}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pointer-events-none opacity-50">
+              <div>
+                <div className="font-semibold text-gray-800">{t.haptic}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.hapticEnabled}
+                  onChange={(e) => settings.setHaptic(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pointer-events-none opacity-50">
+              <div>
+                <div className="font-semibold text-gray-800">{t.sound}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.soundEnabled}
+                  onChange={(e) => settings.setSound(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-gray-800">{t.reduceMotion}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.reduceMotion}
+                  onChange={(e) => settings.setReduceMotion(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Summary Card */}
+        <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
+          <h2 className="text-xl font-bold mb-6 text-brand-secondary">{t.tasteProfile}</h2>
+
+          <div className="space-y-4 text-sm text-gray-600">
+            <div className="flex justify-between py-2 border-b border-gray-50">
+              <span className="font-medium">{t.activeFilters}</span>
+              <span className="font-bold text-gray-900">{countActiveFilters(filters)}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-50">
+              <span className="font-medium">{t.price}</span>
+              <span className="text-gray-900">
+                {filters.priceRange || (isEn ? 'Any' : 'Mọi mức giá')}
+              </span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-50">
+              <span className="font-medium">{t.cuisine}</span>
+              <span className="text-gray-900 max-w-[200px] text-right truncate">
+                {toListText(filters.cuisineType)}
+              </span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-50">
+              <span className="font-medium">{t.diet}</span>
+              <span className="text-gray-900">{toListText(filters.dietTag)}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-50">
+              <span className="font-medium">{t.allergens}</span>
+              <span className="text-gray-900">{toListText(filters.allergenExclude)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

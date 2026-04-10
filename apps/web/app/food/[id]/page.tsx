@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { getFoodDetail } from '../../../src/lib/api';
+import { tPriceRange, tCookingStyle } from '../../../src/lib/translate';
 
 export default async function FoodDetailPage({ params }: { params: { id: string } }) {
   const food = await getFoodDetail(params.id);
@@ -23,11 +24,11 @@ export default async function FoodDetailPage({ params }: { params: { id: string 
 
         <div className="mt-5 flex flex-wrap gap-2 text-sm font-semibold text-brand-secondary">
           <span className="rounded-full bg-orange-50 px-3 py-1">
-            Giá: {food.priceRange ?? 'medium'}
+            Giá: {tPriceRange(food.priceRange || 'medium', false)}
           </span>
           <span className="rounded-full bg-orange-50 px-3 py-1">Calo: {food.calories ?? 0}</span>
           <span className="rounded-full bg-orange-50 px-3 py-1">
-            Kiểu nấu: {food.cookingStyle ?? 'dry'}
+            Kiểu nấu: {tCookingStyle(food.cookingStyle || 'dry', false)}
           </span>
         </div>
       </article>
