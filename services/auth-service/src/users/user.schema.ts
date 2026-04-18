@@ -16,6 +16,27 @@ export class DietPreferences {
   allergies!: string[];
 }
 
+@Schema({ _id: false })
+export class UserSettings {
+  @Prop({ type: String, enum: ['vi', 'en'], default: 'vi' })
+  language!: 'vi' | 'en';
+
+  @Prop({ default: true })
+  soundEnabled!: boolean;
+
+  @Prop({ default: true })
+  hapticEnabled!: boolean;
+
+  @Prop({ default: false })
+  reduceMotion!: boolean;
+
+  @Prop({ default: false })
+  disableConfetti!: boolean;
+
+  @Prop({ default: 1 })
+  textScale!: number;
+}
+
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
   @Prop({ required: true, trim: true })
@@ -24,8 +45,11 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
-  @Prop({ required: true })
-  passwordHash!: string;
+  @Prop({ type: String, default: null })
+  passwordHash?: string | null;
+
+  @Prop({ type: String, default: null })
+  googleId?: string | null;
 
   @Prop({ type: String, default: null })
   refreshTokenHash?: string | null;
@@ -36,8 +60,11 @@ export class User {
   @Prop({ type: DietPreferences, default: () => ({ type: 'normal', allergies: [] }) })
   dietPreferences!: DietPreferences;
 
-  @Prop()
-  avatar?: string;
+  @Prop({ type: String, default: null })
+  avatarUrl?: string | null;
+
+  @Prop({ type: UserSettings, default: () => ({}) })
+  settings!: UserSettings;
 
   @Prop({ default: true })
   isActive!: boolean;
