@@ -3,7 +3,7 @@
  */
 import { AuthUser } from '../store/auth-store';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://fiwpr.id.vn/api/v1';
+const BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'https://fiwpr.id.vn/api/v1';
 
 type AuthResponse = {
   user: AuthUser;
