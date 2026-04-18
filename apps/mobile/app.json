@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Lắc Lắc",
+    "slug": "mobile-app",
+    "icon": "./assets/icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "61b55d8d-1d87-4a31-816d-c2d00a977c71"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.fiwpr.mobileapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Ứng dụng cần truy cập ảnh để đổi avatar",
+        "NSCameraUsageDescription": "Ứng dụng cần camera để chụp ảnh avatar"
+      }
+    },
+    "android": {
+      "package": "com.fiwpr.mobileapp",
+      "permissions": [
+        "android.hardware.sensor.accelerometer",
+        "android.hardware.sensor.gyroscope"
+      ]
+    },
+    "plugins": [
+      "expo-sensors",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần truy cập ảnh để đổi avatar.",
+          "cameraPermission": "Ứng dụng cần camera để chụp ảnh avatar."
+        }
+      ]
+    ]
+  }
+}
