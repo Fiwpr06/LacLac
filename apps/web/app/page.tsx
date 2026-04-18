@@ -122,7 +122,7 @@ export default function HomePage() {
     noImage: isEn ? 'No image' : 'Không có ảnh',
     dish: isEn ? 'Dish' : 'Món ăn',
     main: isEn ? 'Main' : 'Món chính',
-    accept: isEn ? 'Accept' : 'Chốt món',
+    accept: isEn ? 'Favorite' : 'Yêu thích',
     details: isEn ? 'View Details' : 'Xem chi tiết',
     shakeWait: isEn ? 'Shake to show meals...' : 'Lắc để hiển thị món ăn...',
     historyTitle: isEn ? 'Shake History' : 'Lịch Sử Lắc',
