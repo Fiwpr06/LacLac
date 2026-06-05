@@ -44,7 +44,24 @@ lac-lac/
 		└── lac-lac.postman_collection.json
 ```
 
-## Tính năng đã scaffold
+## Tính năng Web & Mobile (Đã hoàn thiện)
+
+- **Mobile App (React Native/Expo):**
+  - Giao diện "Quẹt" (Swipe) trực quan để chọn món.
+  - Tích hợp Toggle chuyển đổi linh hoạt giữa chế độ Quẹt (Swipe) và chế độ Xem danh sách truyền thống.
+  - Hỗ trợ hiển thị dữ liệu đa ngôn ngữ (Localized data).
+  - Tích hợp tính năng xem công thức (recipes) và lượng calo của món ăn.
+  - Hỗ trợ build APK trực tiếp và cấu hình môi trường Preview/Production.
+- **Web App (Next.js):**
+  - Giao diện hiện đại, tối ưu SEO và fix hoàn toàn lỗi React Hydration.
+  - Cập nhật UI hiển thị dữ liệu món ăn đa ngôn ngữ (tiếng Việt/Anh).
+  - Tích hợp Toggle chuyển đổi linh hoạt chế độ xem (Swipe Mode / Normal Mode).
+  - Trang Download App (/download) cao cấp với mã QR quét tải ứng dụng hoặc trải nghiệm Web, hỗ trợ tải APK trực tiếp.
+- **Admin App (Next.js):**
+  - Quản lý danh sách món ăn tích hợp dữ liệu đa ngôn ngữ, công thức, calories.
+  - Hỗ trợ upload hình ảnh với fallback (phòng trường hợp không có Cloudinary).
+
+## Tính năng Backend (Đã scaffold)
 
 - auth-service:
   - POST /auth/register
@@ -56,8 +73,8 @@ lac-lac/
   - GET /foods, GET /foods/:id
   - GET /foods/random
   - GET /foods/swipe-queue
-  - POST /foods/filter
-  - POST /foods/context (rule-based)
+  - POST /foods/filter (Lọc nâng cao theo chế độ ăn, giá, v.v.)
+  - POST /foods/context (Gợi ý theo ngữ cảnh - rule-based)
   - POST/PUT/DELETE /foods (admin)
   - GET /categories
 - action-service:
@@ -73,7 +90,7 @@ lac-lac/
   - POST /media/upload (Cloudinary hoặc mock fallback)
 - Seed dữ liệu:
   - services/food-service/src/seeds/seed-foods.ts
-  - 60 món Việt theo danh sách yêu cầu
+  - 89 món ăn có hỗ trợ dữ liệu đa ngôn ngữ, công thức (recipes) và calories.
 
 ## Yêu cầu môi trường
 
