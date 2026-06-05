@@ -280,13 +280,19 @@ export const getSwipeQueue = async (filters?: WebFilter): Promise<FoodItem[]> =>
   return foods.map((food) => sanitizeFood(food));
 };
 
-export const postShake = async (payload: {
-  sessionId: string;
-  triggerType?: TriggerType;
-  deviceType?: 'mobile' | 'web';
-  context?: ContextTag;
-  filters?: WebFilter;
-}): Promise<ShakeResponse> => {
+export const postShake = async (
+  payload: {
+    sessionId: string;
+    triggerType?: TriggerType;
+    deviceType?: 'mobile' | 'web';
+    context?: ContextTag;
+    filters?: WebFilter;
+    collectionIds?: string[];
+    includeSystem?: boolean;
+    excludeFoodIds?: string[];
+  },
+  token?: string,
+): Promise<ShakeResponse & { resetRequired?: boolean }> => {
   const triggerType = payload.triggerType ?? 'button';
   const deviceType = payload.deviceType ?? 'web';
 
@@ -294,6 +300,7 @@ export const postShake = async (payload: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       sessionId: payload.sessionId,
@@ -301,6 +308,9 @@ export const postShake = async (payload: {
       deviceType,
       ...(payload.context ? { context: payload.context } : {}),
       ...(payload.filters ? { filters: payload.filters } : {}),
+      ...(payload.collectionIds ? { collectionIds: payload.collectionIds } : {}),
+      ...(payload.includeSystem !== undefined ? { includeSystem: payload.includeSystem } : {}),
+      ...(payload.excludeFoodIds ? { excludeFoodIds: payload.excludeFoodIds } : {}),
     }),
   });
 
@@ -323,7 +333,7 @@ export const postShake = async (payload: {
     };
   }
 
-  const body = await parseJson<{ data: ShakeResponse }>(response);
+  const body = await parseJson<{ data: ShakeResponse & { resetRequired?: boolean } }>(response);
   return {
     ...body.data,
     food: body.data.food ? sanitizeFood(body.data.food) : null,
@@ -368,4 +378,204 @@ export const postAction = async (payload: ActionPayload) => {
   if (!response.ok) {
     throw new Error(`Failed to post action (${response.status})`);
   }
+};
+
+export type CustomCollection = {
+  _id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CustomFood = {
+  _id: string;
+  collectionId: string;
+  name: string;
+  description?: string;
+  category?: string;
+  imageUrl?: string;
+  note?: string;
+  isRandomEnabled: boolean;
+  sortOrder: number;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const MEDIA_API_BASES = [
+  normalizeApiBase(process.env['NEXT_PUBLIC_API_URL']),
+  'http://localhost:8080/api/v1',
+  'http://localhost:3005/api/v1',
+].filter((value, index, array): value is string => !!value && array.indexOf(value) === index);
+
+export const getCustomCollections = async (token: string): Promise<CustomCollection[]> => {
+  const response = await fetchFromBases('/custom-collections', FOOD_API_BASES, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+  const body = await parseJson<{ data: CustomCollection[] }>(response);
+  return body.data ?? [];
+};
+
+export const getCustomCollectionDetail = async (id: string, token: string): Promise<CustomCollection> => {
+  const response = await fetchFromBases(`/custom-collections/${id}`, FOOD_API_BASES, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+  const body = await parseJson<{ data: CustomCollection }>(response);
+  return body.data;
+};
+
+export const createCustomCollection = async (
+  payload: { name: string; description?: string; imageUrl?: string },
+  token: string,
+): Promise<CustomCollection> => {
+  const response = await fetchFromBases('/custom-collections', FOOD_API_BASES, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = await parseJson<{ data: CustomCollection }>(response);
+  return body.data;
+};
+
+export const updateCustomCollection = async (
+  id: string,
+  payload: { name?: string; description?: string; imageUrl?: string },
+  token: string,
+): Promise<CustomCollection> => {
+  const response = await fetchFromBases(`/custom-collections/${id}`, FOOD_API_BASES, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = await parseJson<{ data: CustomCollection }>(response);
+  return body.data;
+};
+
+export const deleteCustomCollection = async (id: string, token: string): Promise<{ deleted: boolean }> => {
+  const response = await fetchFromBases(`/custom-collections/${id}`, FOOD_API_BASES, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return await parseJson<{ deleted: boolean }>(response);
+};
+
+export const copyCustomCollection = async (id: string, token: string): Promise<CustomCollection> => {
+  const response = await fetchFromBases(`/custom-collections/${id}/copy`, FOOD_API_BASES, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const body = await parseJson<{ data: CustomCollection }>(response);
+  return body.data;
+};
+
+export const getCustomFoods = async (collectionId: string, token: string): Promise<CustomFood[]> => {
+  const response = await fetchFromBases(`/custom-collections/${collectionId}/foods`, FOOD_API_BASES, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+  const body = await parseJson<{ data: CustomFood[] }>(response);
+  return body.data ?? [];
+};
+
+export const addCustomFood = async (
+  collectionId: string,
+  payload: {
+    name: string;
+    description?: string;
+    category?: string;
+    imageUrl?: string;
+    note?: string;
+    isRandomEnabled?: boolean;
+    sortOrder?: number;
+  },
+  token: string,
+): Promise<CustomFood> => {
+  const response = await fetchFromBases(`/custom-collections/${collectionId}/foods`, FOOD_API_BASES, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = await parseJson<{ data: CustomFood }>(response);
+  return body.data;
+};
+
+export const updateCustomFood = async (
+  collectionId: string,
+  foodId: string,
+  payload: {
+    name?: string;
+    description?: string;
+    category?: string;
+    imageUrl?: string;
+    note?: string;
+    isRandomEnabled?: boolean;
+    sortOrder?: number;
+  },
+  token: string,
+): Promise<CustomFood> => {
+  const response = await fetchFromBases(`/custom-collections/${collectionId}/foods/${foodId}`, FOOD_API_BASES, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = await parseJson<{ data: CustomFood }>(response);
+  return body.data;
+};
+
+export const deleteCustomFood = async (
+  collectionId: string,
+  foodId: string,
+  token: string,
+): Promise<{ deleted: boolean }> => {
+  const response = await fetchFromBases(`/custom-collections/${collectionId}/foods/${foodId}`, FOOD_API_BASES, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return await parseJson<{ deleted: boolean }>(response);
+};
+
+export const uploadImage = async (
+  fileBase64: string,
+  assetName: string,
+  token: string,
+): Promise<{ url: string }> => {
+  const response = await fetchFromBases('/media/upload', MEDIA_API_BASES, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ imageBase64: fileBase64, assetName }),
+  });
+  const body = await parseJson<{ data: { url: string } }>(response);
+  return body.data;
 };

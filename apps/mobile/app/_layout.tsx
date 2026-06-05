@@ -47,6 +47,18 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="collections/index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="collections/[id]"
+          options={{
+            title: 'Chi tiết bộ sưu tập',
+          }}
+        />
+        <Stack.Screen
           name="food/[id]"
           options={{
             title: 'Chi tiết món',

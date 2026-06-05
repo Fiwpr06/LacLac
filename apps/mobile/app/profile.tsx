@@ -204,6 +204,15 @@ export default function ProfileScreen() {
                 <>
                   <Text style={[styles.userName, { fontSize: baseFontSize + 1 }]}>{user.name}</Text>
                   <Text style={[styles.userEmail, { fontSize: baseFontSize - 2 }]}>{user.email}</Text>
+                  <Pressable
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 8 }}
+                    onPress={() => router.push('/collections')}
+                  >
+                    <Ionicons name="journal" size={16} color="#E53935" />
+                    <Text style={{ color: '#E53935', fontWeight: '700', fontSize: baseFontSize - 1 }}>
+                      {isEn ? 'Custom Collections' : 'Bộ món ăn cá nhân'}
+                    </Text>
+                  </Pressable>
                   <Pressable style={styles.logoutBtn} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={14} color="#E53935" />
                     <Text style={[styles.logoutText, { fontSize: baseFontSize - 2 }]}>{t.logout}</Text>

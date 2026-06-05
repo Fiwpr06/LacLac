@@ -11,10 +11,13 @@ import {
   postAction,
   postShake,
   toActionFilterSnapshot,
+  CustomCollection,
+  getCustomCollections,
 } from '../src/lib/api';
 import { useFilters } from '../src/store/filters';
 import { useSettingsStore } from '../src/store/settings';
 import { useHistoryStore } from '../src/store/history';
+import { useAuthStore } from '../src/store/auth-store';
 import { tPriceRange } from '../src/lib/translate';
 
 const countActiveFilters = (filters: WebFilter): number => {
@@ -83,6 +86,21 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
+
+  // Custom Collections states
+  const { user, accessToken } = useAuthStore();
+  const [collections, setCollections] = useState<CustomCollection[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [includeSystem, setIncludeSystem] = useState(true);
+  const [excludeFoodIds, setExcludeFoodIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (accessToken) {
+      getCustomCollections(accessToken)
+        .then(setCollections)
+        .catch(console.error);
+    }
+  }, [accessToken]);
 
   const queueLoadingRef = useRef(false);
   const queueSignatureRef = useRef('');
@@ -206,26 +224,52 @@ export default function HomePage() {
       let selectedFood: FoodItem | null = null;
       let nextQueue = queue;
 
-      if (queue.length > 0) {
+      const hasCustomSource = selectedCollections.length > 0 || !includeSystem;
+
+      if (queue.length > 0 && !hasCustomSource) {
         selectedFood = queue[0] ?? null;
         nextQueue = queue.slice(1);
       } else {
-        const freshQueue = await getSwipeQueue(activeFilters);
-        if (freshQueue.length > 0) {
-          selectedFood = freshQueue[0] ?? null;
-          nextQueue = mergeUniqueFoods([], freshQueue.slice(1));
-        } else {
-          const result = await postShake({
+        let result = await postShake(
+          {
             sessionId,
             triggerType: 'button',
             context: activeFilters.context,
             filters: activeFilters,
-          });
-          selectedFood = result.food;
+            collectionIds: selectedCollections,
+            includeSystem,
+            excludeFoodIds,
+          },
+          accessToken || undefined,
+        );
+
+        if (result.resetRequired) {
+          setExcludeFoodIds([]);
+          alert(
+            isEn
+              ? 'All items in this collection have been shaken. Resetting pool!'
+              : 'Bạn đã random hết tất cả món trong bộ này. Bộ món ăn đã được reset.',
+          );
+          
+          result = await postShake(
+            {
+              sessionId,
+              triggerType: 'button',
+              context: activeFilters.context,
+              filters: activeFilters,
+              collectionIds: selectedCollections,
+              includeSystem,
+              excludeFoodIds: [],
+            },
+            accessToken || undefined,
+          );
         }
+
+        selectedFood = result.food;
+        nextQueue = [];
       }
 
-      if (queueSignatureRef.current !== signature) return;
+      if (queueSignatureRef.current !== signature && !hasCustomSource) return;
 
       if (selectedFood) {
         try {
@@ -235,13 +279,14 @@ export default function HomePage() {
         } catch (e) {}
         setFood(selectedFood);
         addHistory(selectedFood!);
+        setExcludeFoodIds((prev) => [...prev, selectedFood!._id]);
       } else {
         try {
           const falseAudio = new Audio('/sounds/false.mp3');
           falseAudio.volume = 0.5;
           falseAudio.play().catch(() => {});
         } catch (e) {}
-        setErrorText(t.apiError); // Set error if no food found
+        setErrorText(t.apiError);
       }
       setQueue(nextQueue);
 
@@ -254,7 +299,7 @@ export default function HomePage() {
         filterSnapshot: toActionFilterSnapshot(activeFilters),
       }).catch(console.error);
 
-      if (nextQueue.length <= 2) {
+      if (nextQueue.length <= 2 && !hasCustomSource) {
         void warmQueue(signature, activeFilters);
       }
     } catch (error) {
@@ -274,10 +319,90 @@ export default function HomePage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-6 md:gap-8 items-start">
-      {/* LEFT PANEL: Active Filters */}
-      <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
-        <h2 className="text-lg font-bold mb-1 text-brand-secondary">{t.activeFiltersStr}</h2>
-        <p className="text-sm text-brand-muted mb-6">{t.filterDesc}</p>
+      {/* LEFT PANEL: Sources & Active Filters */}
+      <div className="space-y-6">
+        {/* Source selector */}
+        {user && (
+          <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
+            <h2 className="text-lg font-bold mb-1 text-brand-secondary">
+              {isEn ? 'Shake Sources' : 'Nguồn lắc món'}
+            </h2>
+            <p className="text-sm text-brand-muted mb-4">
+              {isEn ? 'Choose where Lắc pulls from' : 'Chọn nguồn món ăn để random'}
+            </p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeSystem}
+                  onChange={(e) => setIncludeSystem(e.target.checked)}
+                  className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                />
+                <span className="text-sm font-semibold text-slate-700">
+                  {isEn ? 'System Foods' : 'Món ăn Hệ Thống'}
+                </span>
+              </label>
+              <div className="border-t border-slate-100 my-2 pt-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  {isEn ? 'Custom Collections' : 'Bộ sưu tập cá nhân'}
+                </span>
+                {collections.length === 0 ? (
+                  <div className="text-xs text-slate-400 italic">
+                    {isEn ? 'No collections. ' : 'Chưa có bộ sưu tập. '}
+                    <Link href="/collections" className="text-brand-primary underline font-bold">
+                      {isEn ? 'Create one' : 'Tạo ngay'}
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {collections.map((col) => (
+                      <label key={col._id} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCollections.includes(col._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCollections([...selectedCollections, col._id]);
+                            } else {
+                              setSelectedCollections(selectedCollections.filter((id) => id !== col._id));
+                            }
+                          }}
+                          className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                        />
+                        <span className="text-sm text-slate-700 truncate" title={col.name}>
+                          {col.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!user && (
+          <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border text-center">
+            <span className="text-2xl mb-2 block">🍱</span>
+            <h3 className="text-sm font-bold text-slate-700 mb-1">
+              {isEn ? 'Custom Food Collections' : 'Tự tạo bộ món ăn'}
+            </h3>
+            <p className="text-xs text-brand-muted mb-4">
+              {isEn ? 'Sign in to create your own collections and shake from them!' : 'Đăng nhập để tự tạo danh sách món ăn riêng và lắc nhé!'}
+            </p>
+            <Link
+              href="/login"
+              className="w-full py-2 bg-brand-primary/10 text-brand-primary font-bold rounded-lg text-xs hover:bg-brand-primary/20 transition-colors inline-block"
+            >
+              {isEn ? 'Sign In' : 'Đăng nhập'}
+            </Link>
+          </div>
+        )}
+
+        {/* Active Filters */}
+        <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
+          <h2 className="text-lg font-bold mb-1 text-brand-secondary">{t.activeFiltersStr}</h2>
+          <p className="text-sm text-brand-muted mb-6">{t.filterDesc}</p>
 
         <div className="space-y-4">
           <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
@@ -330,6 +455,7 @@ export default function HomePage() {
           {t.editFilters}
         </Link>
       </div>
+    </div>
 
       {/* CENTER PANEL: Shake Area */}
       <div className="bg-white rounded-2xl shadow-card p-8 border border-brand-border flex flex-col items-center min-h-[600px] relative">
@@ -414,14 +540,24 @@ export default function HomePage() {
             <div className="p-6 flex flex-col justify-between flex-1">
               <div>
                 <div className="flex justify-between items-start gap-4 mb-1">
-                  <h3 className="text-xl font-bold text-gray-900 leading-tight">{food.name?.vi}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                    {food.name?.vi}
+                    {(food as any).isCustom && (
+                      <span className="ml-2 px-2 py-0.5 bg-brand-primary text-white text-[10px] font-bold rounded uppercase align-middle">
+                        Cá nhân
+                      </span>
+                    )}
+                  </h3>
                   <span className="font-semibold text-lg text-brand-primary shrink-0">
                     {tPriceRange(food.priceRange, isEn)}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500 flex items-center gap-2 mb-4">
                   <span>
-                    {typeof food.category === 'string' ? t.dish : (typeof food.category?.name === 'string' ? food.category.name : food.category?.name?.vi) || t.dish}
+                    {(food as any).isCustom 
+                      ? `${isEn ? 'Collection' : 'Bộ sưu tập'}: ${(food as any).collectionName}`
+                      : (typeof food.category === 'string' ? t.dish : (typeof food.category?.name === 'string' ? food.category.name : food.category?.name?.vi) || t.dish)
+                    }
                   </span>
                   <span>•</span>
                   <span>{t.main}</span>

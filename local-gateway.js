@@ -6,6 +6,7 @@ const routes = {
   '/api/v1/users': 3001,
   '/api/v1/foods': 3002,
   '/api/v1/categories': 3002,
+  '/api/v1/custom-collections': 3002,
   '/api/v1/actions': 3003,
   '/api/v1/favorites': 3003,
   '/api/v1/history': 3003,

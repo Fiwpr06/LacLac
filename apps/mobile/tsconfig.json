@@ -9,9 +9,6 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": [
-      "react"
-    ],
     "ignoreDeprecations": "5.0"
   },
   "include": [

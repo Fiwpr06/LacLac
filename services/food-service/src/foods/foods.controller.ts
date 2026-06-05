@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
@@ -16,8 +16,8 @@ export class FoodsController {
 
   @Post('shake')
   @ApiOperation({ summary: 'Lấy món ăn theo hành động lắc hoặc nút Lắc Lắc' })
-  async shake(@Body() dto: ShakeRequestDto) {
-    const data = await this.foodsService.shake(dto);
+  async shake(@Req() req: any, @Body() dto: ShakeRequestDto) {
+    const data = await this.foodsService.shake(req, dto);
     return { success: true, data };
   }
 

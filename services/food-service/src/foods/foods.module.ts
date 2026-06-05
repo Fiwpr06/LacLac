@@ -9,6 +9,7 @@ import { RolesGuard } from '../common/roles.guard';
 import { Food, FoodSchema } from './food.schema';
 import { FoodsController } from './foods.controller';
 import { FoodsService } from './foods.service';
+import { CustomCollectionsModule } from '../custom-collections/custom-collections.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { FoodsService } from './foods.service';
       { name: Food.name, schema: FoodSchema },
       { name: Category.name, schema: CategorySchema },
     ]),
+    CustomCollectionsModule,
   ],
   controllers: [FoodsController],
   providers: [FoodsService, JwtAuthGuard, RolesGuard],

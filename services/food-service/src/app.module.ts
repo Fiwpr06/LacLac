@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { CategoriesModule } from './categories/categories.module';
 import { FoodsModule } from './foods/foods.module';
+import { CustomCollectionsModule } from './custom-collections/custom-collections.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { FoodsModule } from './foods/foods.module';
     }),
     FoodsModule,
     CategoriesModule,
+    CustomCollectionsModule,
   ],
   providers: [],
 })

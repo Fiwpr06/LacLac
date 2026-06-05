@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   Vibration,
+  Alert,
 } from 'react-native';
 import { useRouter, usePathname, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ import { useHistoryStore } from '../src/store/history-store';
 import { useSettingsStore } from '../src/store/settings-store';
 import { useAuthStore } from '../src/store/auth-store';
 import { useShakeDetector } from '../src/hooks/use-shake-detector';
-import { postShake } from '../src/lib/api';
+import { postShake, getCustomCollections, CustomCollection } from '../src/lib/api';
 import { historyApi } from '../src/lib/user-api';
 
 const { width } = Dimensions.get('window');
@@ -45,33 +46,91 @@ export default function ShakeScreen() {
   const pathname = usePathname();
   const [isFocused, setIsFocused] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsFocused(true);
-      return () => setIsFocused(false);
-    }, []),
-  );
+  const settings = useSettingsStore();
+  const { soundEnabled, setSound, hapticEnabled, language } = settings;
+  const isEn = language === 'en';
 
   const { filters } = useFilterStore();
   const { history, addHistory } = useHistoryStore();
-  const { soundEnabled, setSound, hapticEnabled } = useSettingsStore();
   const { user, accessToken } = useAuthStore();
 
   const [loading, setLoading] = useState(false);
+  const [excludeFoodIds, setExcludeFoodIds] = useState<string[]>([]);
+  const [includeSystem, setIncludeSystem] = useState(true);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [collections, setCollections] = useState<CustomCollection[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
+
+  const fetchCollections = async () => {
+    if (!accessToken) {
+      setCollections([]);
+      return;
+    }
+    try {
+      setCollectionsLoading(true);
+      const data = await getCustomCollections(accessToken);
+      setCollections(data);
+    } catch (err) {
+      console.warn('Error fetching custom collections on main screen:', err);
+    } finally {
+      setCollectionsLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      fetchCollections();
+      return () => setIsFocused(false);
+    }, [accessToken]),
+  );
 
   const handleManualShake = async (isManual = true) => {
     if (loading) return;
+
+    if (accessToken && !includeSystem && selectedCollections.length === 0) {
+      Alert.alert(
+        isEn ? 'Warning' : 'Chú ý',
+        isEn
+          ? 'Please select at least one shaking source (System or a custom collection).'
+          : 'Vui lòng chọn ít nhất một nguồn lắc (Hệ thống hoặc bộ sưu tập cá nhân).',
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       if (soundEnabled) {
         await playSoundEffect(require('../assets/sounds/shake.mp3'));
       }
 
-      const res = await postShake({
+      let res = await postShake({
         sessionId: Date.now().toString(),
         triggerType: isManual ? 'button' : 'shake',
         filters,
-      });
+        collectionIds: accessToken ? selectedCollections : undefined,
+        includeSystem: accessToken ? includeSystem : undefined,
+        excludeFoodIds,
+      }, accessToken || undefined);
+
+      if (res && res.resetRequired) {
+        setExcludeFoodIds([]);
+        Alert.alert(
+          isEn ? 'Notice' : 'Thông báo',
+          isEn
+            ? 'All items in this collection have been shaken. Resetting pool!'
+            : 'Bạn đã lắc hết tất cả món trong bộ này. Bộ món ăn đã được reset.',
+        );
+
+        res = await postShake({
+          sessionId: Date.now().toString(),
+          triggerType: isManual ? 'button' : 'shake',
+          filters,
+          collectionIds: accessToken ? selectedCollections : undefined,
+          includeSystem: accessToken ? includeSystem : undefined,
+          excludeFoodIds: [],
+        }, accessToken || undefined);
+      }
 
       // Chờ một khoảng nhỏ để tiếng xúc xắc (shake) vang lên rõ trước khi phát tiếng ting
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -82,6 +141,9 @@ export default function ShakeScreen() {
           await playSoundEffect(require('../assets/sounds/ting.mp3'));
         }
         addHistory(res.food);
+
+        // Add to local exclude list
+        setExcludeFoodIds((prev) => [...prev, res.food!._id]);
 
         // Persist history to DB if logged in
         if (accessToken && res.food._id) {
@@ -107,7 +169,12 @@ export default function ShakeScreen() {
         if (soundEnabled) {
           await playSoundEffect(require('../assets/sounds/false.mp3'));
         }
-        console.warn('Khong the lay Random food');
+        Alert.alert(
+          isEn ? 'Notice' : 'Thông báo',
+          isEn
+            ? 'No food items found matching your selection.'
+            : 'Không tìm thấy món ăn nào phù hợp với bộ lọc/nguồn của bạn.',
+        );
       }
     } catch (err) {
       if (hapticEnabled) Vibration.vibrate();
@@ -161,6 +228,78 @@ export default function ShakeScreen() {
           <Ionicons name="options" size={20} color="#333" />
         </Pressable>
       </View>
+
+      {/* Shaking Sources selection if user is logged in */}
+      {accessToken ? (
+        <View style={styles.sourceContainer}>
+          <Text style={styles.sourceTitle}>
+            {isEn ? 'Shaking Sources:' : 'Nguồn lắc món:'}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sourceScroll}
+          >
+            {/* System Foods Pill */}
+            <Pressable
+              onPress={() => setIncludeSystem(!includeSystem)}
+              style={[
+                styles.sourcePill,
+                includeSystem ? styles.sourcePillActive : styles.sourcePillInactive,
+              ]}
+            >
+              <Ionicons
+                name={includeSystem ? 'checkbox' : 'square-outline'}
+                size={16}
+                color={includeSystem ? '#FFF' : '#666'}
+              />
+              <Text
+                style={[
+                  styles.sourcePillText,
+                  includeSystem ? styles.sourcePillTextActive : styles.sourcePillTextInactive,
+                ]}
+              >
+                {isEn ? 'System Foods' : 'Món hệ thống'}
+              </Text>
+            </Pressable>
+
+            {/* Custom Collections Pills */}
+            {collections.map((col) => {
+              const isSelected = selectedCollections.includes(col._id);
+              return (
+                <Pressable
+                  key={col._id}
+                  onPress={() => {
+                    if (isSelected) {
+                      setSelectedCollections((prev) => prev.filter((id) => id !== col._id));
+                    } else {
+                      setSelectedCollections((prev) => [...prev, col._id]);
+                    }
+                  }}
+                  style={[
+                    styles.sourcePill,
+                    isSelected ? styles.sourcePillActive : styles.sourcePillInactive,
+                  ]}
+                >
+                  <Ionicons
+                    name={isSelected ? 'checkbox' : 'square-outline'}
+                    size={16}
+                    color={isSelected ? '#FFF' : '#666'}
+                  />
+                  <Text
+                    style={[
+                      styles.sourcePillText,
+                      isSelected ? styles.sourcePillTextActive : styles.sourcePillTextInactive,
+                    ]}
+                  >
+                    {col.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <View style={styles.centerStage}>
         {loading ? (
@@ -401,4 +540,46 @@ const styles = StyleSheet.create({
     borderColor: '#EAEAEA',
   },
   secondaryBtnText: { color: '#333', fontSize: 16, fontWeight: '500' },
+  sourceContainer: {
+    paddingHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  sourceTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  sourceScroll: {
+    gap: 10,
+    paddingRight: 20,
+  },
+  sourcePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  sourcePillActive: {
+    backgroundColor: '#E53935',
+    borderColor: '#E53935',
+  },
+  sourcePillInactive: {
+    backgroundColor: '#FFF',
+    borderColor: '#EAEAEA',
+  },
+  sourcePillText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  sourcePillTextActive: {
+    color: '#FFF',
+  },
+  sourcePillTextInactive: {
+    color: '#555',
+  },
 });

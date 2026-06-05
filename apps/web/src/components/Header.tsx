@@ -34,6 +34,14 @@ export default function Header() {
 
         {/* Action Right */}
         <div className="flex items-center gap-4">
+          {mounted && user && (
+            <Link
+              href="/collections"
+              className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+            >
+              {isEn ? 'Collections' : 'Bộ sưu tập'}
+            </Link>
+          )}
           <Link
             href="/download"
             className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-bold bg-brand-primary text-white rounded-full hover:bg-brand-primaryHover transition-colors shadow-sm"

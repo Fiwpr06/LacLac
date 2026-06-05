@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 import { FilterDto } from './filter.dto';
 
@@ -32,4 +32,21 @@ export class ShakeRequestDto {
   @ValidateNested()
   @Type(() => FilterDto)
   filters?: FilterDto;
+
+  @ApiPropertyOptional({ type: [String], description: 'Danh sách ID bộ sưu tập cá nhân muốn random' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  collectionIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Có kết hợp ngẫu nhiên món hệ thống không', default: true })
+  @IsOptional()
+  @IsBoolean()
+  includeSystem?: boolean;
+
+  @ApiPropertyOptional({ type: [String], description: 'Danh sách ID món ăn đã lắc trúng trong lượt này để loại trừ' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  excludeFoodIds?: string[];
 }

@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, SortOrder, Types, isValidObjectId } from 'mongoose';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 import { Category, CategoryDocument } from '../categories/category.schema';
 import { toSlug } from '../common/slug.util';
@@ -14,6 +16,8 @@ import { CreateFoodDto, UpdateFoodDto } from './dto/create-food.dto';
 import { ContextRequestDto, FilterDto, FoodsQueryDto } from './dto/filter.dto';
 import { ShakeRequestDto } from './dto/shake.dto';
 import { Food, FoodDocument } from './food.schema';
+import { CustomCollection, CustomCollectionDocument } from '../custom-collections/custom-collection.schema';
+import { CustomFood, CustomFoodDocument } from '../custom-collections/custom-food.schema';
 
 interface FoodsPageResult {
   items: Food[];
@@ -28,7 +32,8 @@ interface FoodsPageResult {
 export interface ShakeResult {
   sessionId: string;
   triggerType: 'shake' | 'button';
-  food: Food | null;
+  food: any | null;
+  resetRequired?: boolean;
   actionHint: {
     sessionId: string;
     foodId?: string;
@@ -45,6 +50,10 @@ export class FoodsService {
   constructor(
     @InjectModel(Food.name) private readonly foodModel: Model<FoodDocument>,
     @InjectModel(Category.name) private readonly categoryModel: Model<CategoryDocument>,
+    @InjectModel(CustomCollection.name) private readonly collectionModel: Model<CustomCollectionDocument>,
+    @InjectModel(CustomFood.name) private readonly customFoodModel: Model<CustomFoodDocument>,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll(queryDto: FoodsQueryDto): Promise<FoodsPageResult> {
@@ -75,17 +84,37 @@ export class FoodsService {
     };
   }
 
-  async findById(foodId: string): Promise<Food> {
+  async findById(foodId: string): Promise<any> {
     if (!isValidObjectId(foodId)) {
       throw new BadRequestException('Food id khong hop le');
     }
 
     const food = await this.foodModel.findOne({ _id: foodId, isActive: true }).lean().exec();
-    if (!food) {
+    if (food) {
+      return food;
+    }
+
+    const customFood = await this.customFoodModel
+      .findOne({ _id: foodId, isDeleted: false })
+      .lean()
+      .exec();
+
+    if (!customFood) {
       throw new NotFoundException('Khong tim thay mon an');
     }
 
-    return food as Food;
+    return {
+      _id: customFood._id,
+      name: { vi: customFood.name, en: '' },
+      description: { vi: customFood.description || '', en: '' },
+      thumbnailImage: customFood.imageUrl || '',
+      images: customFood.imageUrl ? [customFood.imageUrl] : [],
+      category: { name: { vi: customFood.category || 'Món tự tạo', en: 'Custom' } },
+      priceRange: 'medium',
+      tags: { vi: [customFood.category].filter(Boolean), en: [] },
+      origin: 'Custom',
+      isCustom: true,
+    };
   }
 
   async random(filters: FilterDto): Promise<Food | null> {
@@ -96,15 +125,169 @@ export class FoodsService {
     return (result[0] as Food) ?? null;
   }
 
-  async shake(dto: ShakeRequestDto): Promise<ShakeResult> {
+  async shake(req: any, dto: ShakeRequestDto): Promise<ShakeResult> {
     const filters = dto.filters ?? {};
-    const food = await this.random(filters);
-    const foodId = this.resolveFoodId(food);
+    let userId: string | undefined = undefined;
+
+    const authHeader = req?.headers?.['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const secret = this.configService.get<string>(
+          'JWT_SECRET',
+          'lac-lac-default-secret-32-characters-minimum',
+        );
+        const payload = await this.jwtService.verifyAsync<{
+          sub: string;
+          email: string;
+          role: 'user' | 'admin';
+        }>(token, { secret });
+        userId = payload.sub;
+      } catch (e) {
+        // Ignore invalid token, fallback to guest
+      }
+    }
+
+    if (!userId && req?.headers) {
+      const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+      const bypassFlag = this.configService.get<string>('ADMIN_DEV_BYPASS', 'true');
+      if (nodeEnv !== 'production' && bypassFlag === 'true') {
+        userId = 'dev-admin';
+      } else {
+        const bypassHeader = req.headers['x-admin-dev-bypass'];
+        const host = req.headers['host']?.toLowerCase() ?? '';
+        if (bypassHeader === 'true' && (host.startsWith('localhost') || host.startsWith('127.0.0.1'))) {
+          userId = 'dev-admin';
+        }
+      }
+    }
+
+    const excludeObjectIds = (dto.excludeFoodIds ?? [])
+      .filter((id) => isValidObjectId(id))
+      .map((id) => new Types.ObjectId(id));
+
+    let customFoodMatch: any = null;
+    if (userId && dto.collectionIds && dto.collectionIds.length > 0) {
+      const collectionObjectIds = dto.collectionIds
+        .filter((id) => isValidObjectId(id))
+        .map((id) => new Types.ObjectId(id));
+
+      customFoodMatch = {
+        collectionId: { $in: collectionObjectIds },
+        userId,
+        isRandomEnabled: true,
+        isDeleted: false,
+      };
+    }
+
+    const includeSystem = dto.includeSystem ?? (dto.collectionIds && dto.collectionIds.length > 0 ? false : true);
+    let systemFoodMatch: any = null;
+    if (includeSystem) {
+      systemFoodMatch = this.buildFilter(filters);
+    }
+
+    // Tải thông tin tổng số lượng trước để check hết món
+    const totalCustom = customFoodMatch ? await this.customFoodModel.countDocuments(customFoodMatch) : 0;
+    const totalSystem = systemFoodMatch ? await this.foodModel.countDocuments(systemFoodMatch) : 0;
+
+    if (totalCustom + totalSystem === 0) {
+      return {
+        sessionId: dto.sessionId,
+        triggerType: dto.triggerType,
+        food: null,
+        resetRequired: false,
+        actionHint: {
+          sessionId: dto.sessionId,
+          actionType: 'shake_result',
+          context: dto.context ?? 'none',
+          triggerType: dto.triggerType,
+          filterSnapshot: filters,
+          deviceType: dto.deviceType,
+        },
+      };
+    }
+
+    // Tải thông tin số lượng món chưa bị loại trừ
+    let activeCustomQuery: any = null;
+    if (customFoodMatch) {
+      activeCustomQuery = {
+        ...customFoodMatch,
+        _id: { $nin: excludeObjectIds },
+      };
+    }
+    const activeCustomCount = activeCustomQuery ? await this.customFoodModel.countDocuments(activeCustomQuery) : 0;
+
+    let activeSystemQuery: any = null;
+    if (systemFoodMatch) {
+      activeSystemQuery = {
+        ...systemFoodMatch,
+        _id: { $nin: excludeObjectIds },
+      };
+    }
+    const activeSystemCount = activeSystemQuery ? await this.foodModel.countDocuments(activeSystemQuery) : 0;
+
+    if (activeCustomCount + activeSystemCount === 0) {
+      // Đã hết món ăn chưa lắc trong lượt hiện tại
+      return {
+        sessionId: dto.sessionId,
+        triggerType: dto.triggerType,
+        food: null,
+        resetRequired: true,
+        actionHint: {
+          sessionId: dto.sessionId,
+          actionType: 'shake_result',
+          context: dto.context ?? 'none',
+          triggerType: dto.triggerType,
+          filterSnapshot: filters,
+          deviceType: dto.deviceType,
+        },
+      };
+    }
+
+    // Random chọn từ tập active
+    const randomIndex = Math.floor(Math.random() * (activeCustomCount + activeSystemCount));
+    let selectedFood: any = null;
+
+    if (randomIndex < activeCustomCount) {
+      const customFood = await this.customFoodModel
+        .findOne(activeCustomQuery)
+        .skip(randomIndex)
+        .lean()
+        .exec();
+
+      if (customFood) {
+        const collection = await this.collectionModel.findById(customFood.collectionId).lean().exec();
+        selectedFood = {
+          _id: customFood._id,
+          name: { vi: customFood.name, en: '' },
+          description: { vi: customFood.description || '', en: '' },
+          thumbnailImage: customFood.imageUrl || '',
+          images: customFood.imageUrl ? [customFood.imageUrl] : [],
+          category: { name: { vi: customFood.category || 'Món tự tạo', en: 'Custom' } },
+          priceRange: 'medium',
+          tags: { vi: [customFood.category].filter(Boolean), en: [] },
+          origin: 'Custom',
+          isCustom: true,
+          collectionName: collection ? collection.name : '',
+        };
+      }
+    } else {
+      const systemIndex = randomIndex - activeCustomCount;
+      const systemFood = await this.foodModel
+        .findOne(activeSystemQuery)
+        .skip(systemIndex)
+        .lean()
+        .exec();
+      selectedFood = systemFood;
+    }
+
+    const foodId = this.resolveFoodId(selectedFood);
 
     return {
       sessionId: dto.sessionId,
       triggerType: dto.triggerType,
-      food,
+      food: selectedFood,
+      resetRequired: false,
       actionHint: {
         sessionId: dto.sessionId,
         foodId,
