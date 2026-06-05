@@ -1,0 +1,108 @@
+name: lac-lac-prod
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    container_name: laclac-rabbitmq
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+    volumes:
+      - rabbitmq_prod_data:/var/lib/rabbitmq
+    networks:
+      - laclac-net
+
+  auth-service:
+    build:
+      context: ./
+      dockerfile: services/auth-service/Dockerfile
+    container_name: laclac-auth-service
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      SERVICE_NAME: auth-service
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - laclac-net
+
+  food-service:
+    build:
+      context: ./
+      dockerfile: services/food-service/Dockerfile
+    container_name: laclac-food-service
+    env_file:
+      - .env
+    environment:
+      PORT: 3002
+      SERVICE_NAME: food-service
+    networks:
+      - laclac-net
+
+  action-service:
+    build:
+      context: ./
+      dockerfile: services/action-service/Dockerfile
+    container_name: laclac-action-service
+    env_file:
+      - .env
+    environment:
+      PORT: 3003
+      SERVICE_NAME: action-service
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - laclac-net
+
+  rec-service:
+    build:
+      context: ./
+      dockerfile: services/rec-service/Dockerfile
+    container_name: laclac-rec-service
+    env_file:
+      - .env
+    environment:
+      PORT: 3004
+      SERVICE_NAME: rec-service
+    networks:
+      - laclac-net
+
+  media-service:
+    build:
+      context: ./
+      dockerfile: services/media-service/Dockerfile
+    container_name: laclac-media-service
+    env_file:
+      - .env
+    environment:
+      PORT: 3005
+      SERVICE_NAME: media-service
+    networks:
+      - laclac-net
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: laclac-nginx
+    restart: unless-stopped
+    ports:
+      - '3100:80'
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - food-service
+      - action-service
+      - rec-service
+      - media-service
+    networks:
+      - laclac-net
+
+networks:
+  laclac-net:
+    driver: bridge
+
+volumes:
+  rabbitmq_prod_data:
