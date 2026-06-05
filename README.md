@@ -1,237 +1,221 @@
 # Lắc Lắc - "Lắc một cái, ra món ngay"
 
-Lắc Lắc là một hệ sinh thái ứng dụng (Web, Mobile, Admin) giúp định hướng người dùng giải quyết bài toán "Hôm nay ăn gì?" một cách nhanh chóng và tự nhiên. Dành cho những ai phải đau đầu tranh luận hay cân nhắc để chọn món ăn mỗi ngày, dự án mang đến trải nghiệm "Lắc" (Shake) trực quan cùng thao tác "Quẹt" (Swipe) thẻ để ngay lập tức đề xuất món ăn phù hợp theo ngân sách, loại bữa và khẩu vị mà không cần thao tác dườm rà.
+Lắc Lắc là một hệ sinh thái ứng dụng đa nền tảng (Web App, Mobile App, Admin Dashboard) giúp định hướng người dùng giải quyết bài toán đau đầu mỗi ngày: **"Hôm nay ăn gì?"** một cách nhanh chóng, thú vị và tự nhiên. 
 
-Mục tiêu dài hạn là xây dựng thói quen người dùng ở bản v1 và sử dụng AI để cá nhân hóa hoàn toàn đề xuất món ăn ở bản v3.
+Dự án mang đến trải nghiệm **"Lắc" (Shake)** thiết bị trực quan và thao tác **"Quẹt" (Swipe)** thẻ món ăn để đề xuất món ngon phù hợp với ngân sách, bữa ăn và khẩu vị của bạn trong vòng vài giây mà không cần thao tác phức tạp.
 
-## Định hướng v1
+---
 
-- **Không dùng GPS hay bản đồ:** Giữ cho flow đơn giản, người dùng chỉ cần filter món ăn mà không bị làm phiền bởi các yếu tố vị trí.
-- **Microservices & Monorepo:** Tận dụng công nghệ hiện đại giúp đảm bảo tính linh hoạt, tái sử dụng cao và độ ổn định khi mở rộng.
-- **Không AI Recommendation v1:** Thay vì tích hợp AI sớm, hệ thống tập trung hoàn thiện core (logic Backend, thiết kế Mobile, Web mượt mà) và ghi nhận toàn bộ "user actions" làm dữ liệu gốc phục vụ cho model AI sau này.
-- **Thương hiệu Lắc Lắc:** Hệ thống nhận diện xuyên suốt từ website, mobile app tới dashboard của ban quản trị.
+## 📌 Định Hướng Phát Triển (Bản v1)
 
-## Kiến trúc
+*   **Không sử dụng GPS hay Bản đồ:** Giữ cho luồng trải nghiệm đơn giản và riêng tư. Người dùng chỉ cần lọc món ăn theo sở thích mà không bị phân tâm bởi yếu tố vị trí địa lý.
+*   **Kiến trúc Microservices & Monorepo:** Tận dụng công nghệ hiện đại giúp đảm bảo tính linh hoạt, khả năng tái sử dụng mã nguồn cao và dễ dàng mở rộng theo chiều ngang (Horizontal Scaling).
+*   **Thu thập dữ liệu làm tiền đề cho AI (v3):** Chưa vội tích hợp các mô hình AI phức tạp ở v1. Thay vào đó, hệ thống tập trung hoàn thiện core (Backend logic, Mobile/Web UI mượt mà) và ghi nhận toàn bộ lịch sử tương tác của người dùng (`user_actions`) để làm dữ liệu huấn luyện (training data) cho AI Recommendation Engine ở bản v3.
+*   **Thương hiệu Nhận diện Đồng nhất:** Hệ thống nhận diện thương hiệu Lắc Lắc (với tone màu chủ đạo Đỏ Cam rực rỡ) xuyên suốt từ giao diện Landing Page, Web App, Mobile App đến Admin Dashboard.
 
-- Monorepo: Turborepo + pnpm
-- Pattern: Clean Architecture, microservices-ready
-- Backend services: NestJS 10 + MongoDB + Redis + BullMQ
-- Frontend:
-  - Mobile: React Native + Expo Router
-  - Web: Next.js 14 App Router
-  - Admin: Next.js 14
+---
 
-```
+## 🏗️ Sơ Đồ Kiến Trúc Hệ Thống
+
+Dự án được quản lý dưới dạng **Monorepo** sử dụng **Turborepo** và **pnpm workspace** để tối ưu hóa thời gian build và chia sẻ thư viện dùng chung.
+
+```text
 lac-lac/
 ├── apps/
-│   ├── mobile/
-│   ├── web/
-│   └── admin/
+│   ├── mobile/          # Mobile App (React Native + Expo Router) - Chế độ lắc & quẹt món
+│   ├── web/             # Landing Page & Web App (Next.js 14 App Router) - Fix Hydration, tối ưu SEO
+│   └── admin/           # Admin Dashboard (Next.js 14) - Quản lý món ăn, danh mục, calo
 ├── services/
-│   ├── auth-service/
-│   ├── food-service/
-│   ├── action-service/
-│   ├── rec-service/
-│   └── media-service/
+│   ├── auth-service/    # NestJS - Quản lý định danh, JWT Authentication, Refresh Token
+│   ├── food-service/    # NestJS - API chính về món ăn, danh mục, gợi ý ngữ cảnh, seed data
+│   ├── action-service/  # NestJS - Xử lý không đồng bộ (via BullMQ) tương tác quẹt, yêu thích, đánh giá
+│   ├── rec-service/     # NestJS - Đề xuất món ăn thịnh hành (Trending) và cá nhân hóa
+│   └── media-service/   # NestJS - Tải ảnh từ xa, upload ảnh lên Cloudinary với fallback mock mode
 ├── packages/
-│   ├── shared-types/
-│   ├── ui-kit/
-│   └── api-client/
+│   ├── shared-types/    # Thư viện TypeScript Types & Interfaces dùng chung cho Backend và Frontend
+│   ├── ui-kit/          # Thư viện React Native/Web UI components dùng chung
+│   └── api-client/      # SDK gọi API thống nhất giữa các app
 ├── infra/
-│   ├── docker-compose.yml
-│   └── nginx.conf
+│   ├── docker-compose.yml       # Docker Compose chạy toàn bộ services & Nginx Gateway ở production
+│   ├── docker-compose.dev.yml   # Docker Compose chạy nhanh hạ tầng local (MongoDB, Redis)
+│   └── nginx.conf               # Cấu hình Reverse Proxy cho Gateway phân tuyến API /api/v1
 └── postman/
-		└── lac-lac.postman_collection.json
+    └── lac-lac.postman_collection.json  # Bộ sưu tập API test trên Postman
 ```
 
-## Tính năng Web & Mobile (Đã hoàn thiện)
+---
 
-- **Mobile App (React Native/Expo):**
-  - Giao diện "Quẹt" (Swipe) trực quan để chọn món.
-  - Tích hợp Toggle chuyển đổi linh hoạt giữa chế độ Quẹt (Swipe) và chế độ Xem danh sách truyền thống.
-  - Hỗ trợ hiển thị dữ liệu đa ngôn ngữ (Localized data).
-  - Tích hợp tính năng xem công thức (recipes) và lượng calo của món ăn.
-  - Hỗ trợ build APK trực tiếp và cấu hình môi trường Preview/Production.
-- **Web App (Next.js):**
-  - Giao diện hiện đại, tối ưu SEO và fix hoàn toàn lỗi React Hydration.
-  - Cập nhật UI hiển thị dữ liệu món ăn đa ngôn ngữ (tiếng Việt/Anh).
-  - Tích hợp Toggle chuyển đổi linh hoạt chế độ xem (Swipe Mode / Normal Mode).
-  - Trang Download App (/download) cao cấp với mã QR quét tải ứng dụng hoặc trải nghiệm Web, hỗ trợ tải APK trực tiếp.
-- **Admin App (Next.js):**
-  - Quản lý danh sách món ăn tích hợp dữ liệu đa ngôn ngữ, công thức, calories.
-  - Hỗ trợ upload hình ảnh với fallback (phòng trường hợp không có Cloudinary).
+## 🌟 Chi Tiết Các Tính Năng Đã Hoàn Thiện
 
-## Tính năng Backend (Đã scaffold)
+### 1. Mobile App (React Native/Expo)
+*   **Swipe Mode:** Giao diện thẻ quẹt trực quan (vuốt trái để bỏ qua, vuốt phải để lưu món yêu thích).
+*   **List Mode & Toggle:** Chuyển đổi linh hoạt giữa chế độ Quẹt thẻ sinh động và chế độ Xem danh sách truyền thống.
+*   **Localization:** Hiển thị dữ liệu đa ngôn ngữ chuẩn xác (Việt / Anh).
+*   **Thông tin Món ăn Chi tiết:** Xem công thức (recipes) từng bước, lượng calo, độ khó và các chất dinh dưỡng đi kèm.
+*   **Build-ready:** Hỗ trợ cấu hình môi trường preview/production sẵn sàng cho việc đóng gói APK trực tiếp.
 
-- auth-service:
-  - POST /auth/register
-  - POST /auth/login
-  - POST /auth/refresh
-  - POST /auth/logout
-  - GET /auth/me
-- food-service:
-  - GET /foods, GET /foods/:id
-  - GET /foods/random
-  - GET /foods/swipe-queue
-  - POST /foods/filter (Lọc nâng cao theo chế độ ăn, giá, v.v.)
-  - POST /foods/context (Gợi ý theo ngữ cảnh - rule-based)
-  - POST/PUT/DELETE /foods (admin)
-  - GET /categories
-- action-service:
-  - POST /actions (async via BullMQ)
-  - POST/GET/DELETE /favorites
-  - POST/GET /reviews
-  - PUT /users/me/profile
-  - Cron mỗi 1 giờ tính popularityScore theo trọng số
-- rec-service:
-  - GET /recommendations (placeholder trả [])
-  - GET /recommendations/trending
-- media-service:
-  - POST /media/upload (Cloudinary hoặc mock fallback)
-- Seed dữ liệu:
-  - services/food-service/src/seeds/seed-foods.ts
-  - 89 món ăn có hỗ trợ dữ liệu đa ngôn ngữ, công thức (recipes) và calories.
+### 2. Web App (Next.js 14)
+*   **Tối ưu hóa SEO & Hydration**: Tốc độ tải trang cực nhanh, tối ưu hóa thẻ Meta OpenGraph, sửa đổi hoàn toàn lỗi React Hydration Mismatch.
+*   **Trang Download ứng dụng (/download) cao cấp**:
+    *   Thiết kế phong cách **Glassmorphism** kính mờ sang trọng kèm lưới background SVG và các đốm sáng gradient rực rỡ.
+    *   Tích hợp mô hình điện thoại **iPhone 15 Pro sống động** hiển thị giao diện app thật với ảnh món ăn chất lượng cao lấy từ Cloudinary.
+    *   Thẻ tải thông minh (`DownloadCard`) tự động thay đổi giao diện theo tab (Android APK có QR Code tải trực tiếp và hướng dẫn cài đặt; Web App có link mở nhanh).
+    *   Lưới hiển thị 4 tính năng lõi (Quẹt, Lắc, Công thức, Calo) trực quan.
 
-## Yêu cầu môi trường
+### 3. Admin App (Next.js)
+*   Quản lý danh sách món ăn, danh mục ẩm thực, thiết lập calories, nguyên liệu, công thức chế biến.
+*   Hỗ trợ upload ảnh trực tiếp lên Cloudinary với cơ chế chịu lỗi tự động (mock mode trả về link gốc nếu chưa cấu hình Cloudinary).
 
-- Node.js 20 LTS
-- pnpm 9 (qua corepack)
-- Docker + Docker Compose
-- MongoDB 7, Redis 7 (nếu chạy local không Docker)
+### 4. Dịch vụ Backend (Microservices)
+*   **auth-service:** Đăng ký, đăng nhập, cấp và thu hồi JWT / Refresh Token.
+*   **food-service:** API lấy danh sách, chi tiết món ăn, lấy món ngẫu nhiên (`/foods/random`), gợi ý theo ngữ cảnh (`/foods/context` - rule-based).
+*   **action-service:** Sử dụng queue hàng đợi **BullMQ** để xử lý không đồng bộ các hành vi quẹt món, yêu thích, đánh giá để UI không bị nghẽn. Có Cron Job tự động tính điểm thịnh hành (`popularityScore`) mỗi giờ dựa trên lượt quẹt phải, xem chi tiết và yêu thích.
+*   **media-service:** Tải ảnh từ xa và upload lên Cloudinary.
 
-## Thiết lập
+---
 
-1. Cài dependency
+## 💾 Quản Lý Dữ Liệu & Tự Động Cập Nhật Ảnh Món Ăn
 
+Hệ thống sở hữu bộ dữ liệu món ăn đặc sắc được chuẩn hóa và nâng cấp toàn diện:
+
+### 1. Seed dữ liệu 423 món ăn (Đặc sản Đà Nẵng & Việt Nam)
+Bộ dữ liệu seed được mở rộng lên **423 món ăn** (bao gồm 119 món ăn truyền thống ban đầu và 304 món ăn đặc sản miền Trung/Đà Nẵng được chuẩn hóa từ tài liệu PDF). Để seed dữ liệu vào database MongoDB:
+```bash
+corepack pnpm --filter food-service seed
+```
+*(Lưu ý: Lệnh seed sẽ reset toàn bộ danh mục và nạp lại thông tin gốc của 423 món ăn vào MongoDB).*
+
+### 2. Script cào ảnh tự động và upload Cloudinary
+Script `backfill-food-images.ts` tự động quét các món ăn chưa có ảnh trong database để tải và cập nhật ảnh chất lượng cao:
+*   **Tìm kiếm thông minh**: Sử dụng **DuckDuckGo Images API** làm backend tìm kiếm (lấy dữ liệu từ Bing Search) để tránh bị Google chặn bot.
+*   **Lọc ảnh rác khắt khe**: Loại bỏ các ảnh từ Wikipedia/Wikimedia; bỏ qua ảnh chứa từ khóa `logo`, `banner`, `menu`, `giá`, v.v.; lọc kích thước ảnh tối thiểu `500x400` và tỷ lệ khung hình chuẩn từ `0.7` đến `1.8` để đảm bảo chất lượng hình ảnh thực tế tốt nhất.
+*   **Upload & Đồng bộ**: Tải ảnh về Buffer hệ thống, upload lên thư mục `lac-lac/foods` trên Cloudinary với tên slug tương ứng, cập nhật link public an toàn vào MongoDB.
+*   **Cách chạy script cập nhật ảnh**:
+    ```bash
+    # Chạy thực tế (Tải ảnh, upload Cloudinary thật và lưu MongoDB)
+    corepack pnpm --filter food-service seed:images
+    
+    # Chạy thử nghiệm Dry Run (Chỉ tìm và tải thử ảnh, không ghi đè DB, không upload thật)
+    # CMD (Windows):
+    set DRY_RUN=true&& pnpm --filter food-service seed:images
+    # PowerShell (Windows):
+    $env:DRY_RUN="true"; pnpm --filter food-service seed:images
+    ```
+
+---
+
+## ⚙️ Yêu Cầu Môi Trường
+
+*   **Node.js**: Phiên bản 20 LTS (hoặc 22 LTS)
+*   **pnpm**: Phiên bản 9 trở lên (khuyến nghị cài đặt qua Corepack)
+*   **Docker & Docker Compose** (để chạy nhanh hoặc đóng gói container production)
+*   **MongoDB 7**, **Redis 7** (nếu chạy local không qua Docker)
+
+---
+
+## 🚀 Hướng Dẫn Khởi Chạy Ứng Dụng
+
+### 1. Khởi tạo dự án và cài đặt
+Kích hoạt corepack và cài đặt toàn bộ dependencies trong monorepo:
 ```bash
 corepack enable
 corepack pnpm install
 ```
 
-2. Tạo file môi trường
-
+### 2. Thiết lập biến môi trường
+Tạo file `.env` ở thư mục gốc của dự án từ file example:
 ```bash
 cp .env.example .env
 ```
+Cập nhật các giá trị cấu hình thực tế trong file `.env`:
+*   `MONGODB_URI`: Đường dẫn kết nối MongoDB.
+*   `REDIS_URL`: Đường dẫn kết nối Redis.
+*   `JWT_SECRET` / `JWT_REFRESH_SECRET`: Khóa bảo mật token.
+*   `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: Cấu hình Cloudinary để lưu trữ ảnh món ăn thật.
 
-3. Cập nhật giá trị trong .env
+---
 
-- MONGODB_URI
-- REDIS_URL
-- JWT_SECRET / JWT_REFRESH_SECRET (Bắt buộc phải cài đặt trên Production)
-- CLOUDINARY\_\* (nếu dùng upload thật)
+### 3. Cách chạy ứng dụng
 
-## Bản cập nhật Production-Ready (P0 Fixes)
-
-- **Cơ sở dữ liệu:** Đã bổ sung Compound Indexes gốc trong `FoodSchema` (Context, Giá, Chế độ ăn). Sẵn sàng Scale O(logN) cho API lấy món ăn ngẫu nhiên.
-- **Bảo mật (Security):**
-  - Khắc phục lỗ hổng Next.js SSRF bằng thay thế hostname cụ thể vào cấu hình Image Caching.
-  - Fix Fail-Fast Authentication: Ném Error làm sập luồng Node.js khi khởi chạy mà không có khóa bí mật (JWT) thay vì Fallback giả mạo trên Server.
-- **Độ ổn định Web:** Fix React Hydration Mismatch bằng Hook (`useEffect`) thay vì gọi Web Storage Global trực tiếp.
-- **Microservices:** Gỡ giới hạn Rate Limiting nội tại của `@nestjs/throttler` (lưu biến ở RAM mỗi Instance Node). Nhường cho Redis hoặc Gateway nhằm Horizontal Scale mượt hơn.
-- **Giao tiếp Dữ liệu:** Gỡ bỏ các `Promise<unknown>` hay `any`, Type-safe 100% Data Transfer Object khi truy vấn MongoDB. Lỗi Refresh Token ngắt chain đăng nhập của App Di Dộng đã được sửa.
-
-## Chạy bằng Docker
-
+#### 👉 Cách 3.1: Chạy bằng Docker (Khuyến nghị chạy nhanh toàn bộ)
+Tất cả 5 services backend cùng cổng Gateway Nginx Reverse Proxy sẽ được khởi tạo trong container:
 ```bash
 cd infra
 docker compose up --build
 ```
+*   **Cổng API Gateway Nginx mặc định**: `http://localhost:3100` (hoặc cổng cấu hình qua `GATEWAY_PORT` trong `.env`).
 
-Gateway Nginx (mặc định khi chạy Docker): http://localhost:3100
+#### 👉 Cách 3.2: Chạy local các service và app (Dành cho việc Phát triển/Dev)
+Cách này giúp bạn thay đổi code và thấy kết quả ngay lập tức nhờ cơ chế hot-reload:
 
-Nếu máy bạn không bị chặn cổng 3000 và muốn dùng lại 3000, đặt `GATEWAY_PORT=3000` trước khi `docker compose up` hoặc chạy với `--env-file ../.env`.
+1.  **Chạy MongoDB & Redis bằng Docker ở nền**:
+    ```bash
+    cd infra
+    docker compose -f docker-compose.dev.yml up -d
+    ```
+2.  **Chạy toàn bộ dịch vụ Backend cục bộ**:
+    ```bash
+    corepack pnpm dev
+    ```
+    *(Lệnh này sẽ khởi chạy song song 5 services backend: auth, food, action, rec, media).*
+3.  **Khởi chạy từng ứng dụng Frontend**:
+    *   *Web App (Next.js)*: `corepack pnpm --filter web-app dev` (hoặc chạy nhanh bằng `corepack pnpm dev:web`) -> Mở `http://localhost:3101`
+    *   *Admin App (Next.js)*: `corepack pnpm --filter admin-app dev` -> Mở `http://localhost:3102`
+    *   *Mobile App (React Native)*: Đọc tiếp phần cấu hình bên dưới.
 
-## Dev nhanh (chỉ hạ tầng)
+---
 
-Chạy MongoDB + Redis bằng Docker, còn services/apps chạy local để hot-reload nhanh:
+### 📱 Hướng Dẫn Cấu Hình và Chạy Mobile App Local
 
-```bash
-cd infra
-docker compose -f docker-compose.dev.yml up -d
+Do ứng dụng di động chạy trên thiết bị thật (qua Expo Go) hoặc trình giả lập, bạn cần cấu hình để ứng dụng kết nối đúng với các API Service local đang chạy trên máy tính.
+
+#### 1. Cấu hình file `apps/mobile/.env`
+Mở file `apps/mobile/.env` (tạo mới nếu chưa có) và cấu hình chính xác địa chỉ IP máy tính local của bạn trong mạng Wifi nội bộ kèm cổng port tương ứng:
+```env
+EXPO_PUBLIC_API_URL=http://192.168.1.5:3002/api/v1
+EXPO_PUBLIC_FOOD_API_URL=http://192.168.1.5:3002/api/v1
+EXPO_PUBLIC_ACTION_API_URL=http://192.168.1.5:3003/api/v1
+
+EXPO_PUBLIC_APP_SCHEME=laclac
+EXPO_OFFLINE=1
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.5
 ```
+*(Hãy kiểm tra IP local của máy tính bằng lệnh `ipconfig` trên Windows và thay thế `192.168.1.5` bằng IP thật của bạn).*
 
-## Chạy local từng phần
+#### 2. Khắc phục lỗi Expo CLI `TypeError: Body is unusable`
+Nếu gặp lỗi `Body has already been read` khi chạy `expo start` do xung đột `fetch` của Node.js, bạn cần khởi chạy Metro Bundler ở **chế độ Offline** bằng cách đặt biến môi trường `EXPO_OFFLINE=1`.
 
-Backend services (khởi chạy toàn bộ services cùng lúc):
+*   **Khởi chạy Mobile App cùng các Service Backend đi kèm:**
+    *   CMD (Windows): `set EXPO_OFFLINE=1&& pnpm dev:mobile`
+    *   PowerShell (Windows): `$env:EXPO_OFFLINE=1; pnpm dev:mobile`
+*   **Chỉ khởi chạy riêng ứng dụng Mobile:**
+    *   CMD: `set EXPO_OFFLINE=1&& pnpm --filter mobile-app dev`
+    *   PowerShell: `$env:EXPO_OFFLINE=1; pnpm --filter mobile-app dev`
 
-```bash
-corepack pnpm turbo run dev --filter=auth-service --filter=food-service --filter=action-service --filter=rec-service --filter=media-service
-```
+Khi Metro Bundler chạy, quét mã QR hiển thị trên màn hình bằng ứng dụng **Expo Go** trên điện thoại để bắt đầu trải nghiệm!
 
-Hoặc chạy lẻ từng service:
+---
 
-```bash
-corepack pnpm --filter auth-service dev
-corepack pnpm --filter food-service dev
-corepack pnpm --filter action-service dev
-```
+## 🛠️ Một Số Lệnh Build và Quản Trị Khác
 
-Apps:
+*   **Kiểm tra lỗi TypeScript & Build nhanh tất cả các package**:
+    ```bash
+    corepack pnpm build
+    ```
+*   **Biên dịch riêng dịch vụ Web App**:
+    ```bash
+    corepack pnpm --filter web-app build
+    ```
+*   **Địa chỉ tài liệu Swagger API khi chạy local**:
+    *   Dịch vụ Auth: `http://localhost:3001/api/docs/auth`
+    *   Dịch vụ Food: `http://localhost:3002/api/docs/food`
+    *   Dịch vụ Action: `http://localhost:3003/api/docs/action`
+    *   Dịch vụ Media: `http://localhost:3005/api/docs/media`
 
-```bash
-corepack pnpm --filter mobile-app dev
-corepack pnpm --filter web-app dev
-corepack pnpm --filter admin-app dev
-```
+---
 
-Chạy nhanh mobile + APIs cần thiết (khuyến nghị để tránh lag do thiếu service):
+## 📄 Bản Quyền & Giấy Phép
 
-```bash
-corepack pnpm dev:mobile
-```
+Copyright © 2024 Lắc Lắc. All rights reserved.
 
-Chạy nhanh web + APIs cần thiết:
-
-```bash
-corepack pnpm dev:web
-```
-
-## Seed dữ liệu 89 món
-
-```bash
-corepack pnpm --filter food-service seed
-```
-
-## Swagger Docs
-
-Khi chạy local từng service (không qua Docker gateway):
-
-- Auth: http://localhost:3001/api/docs/auth
-- Food: http://localhost:3002/api/docs/food
-- Action: http://localhost:3003/api/docs/action
-- Recommendation: http://localhost:3004/api/docs/recommendations
-- Media: http://localhost:3005/api/docs/media
-
-Khi chạy Docker theo `infra/docker-compose.yml`, Nginx mặc định chỉ route nhóm API `/api/v1/*`.
-Route `/api/docs/*` chưa được expose qua gateway.
-
-## Postman
-
-Import file:
-
-- postman/lac-lac.postman_collection.json
-
-## Build nhanh
-
-```bash
-corepack pnpm --filter @lac-lac/shared-types build
-corepack pnpm --filter auth-service build
-corepack pnpm --filter food-service build
-corepack pnpm --filter action-service build
-corepack pnpm --filter rec-service build
-corepack pnpm --filter media-service build
-```
-
-## Lưu ý kỹ thuật
-
-- API response format thống nhất: { success, data, message?, meta? }
-- Action logging không chặn UI (queue BullMQ)
-- user_actions giữ raw data, không xóa, không aggregate ghi đè
-- popularityScore = swipe_right*2 + view_detail*1 + favorite_add*3 + review_submit*4
-
-## License
-
-Copyright (c) 2024 Lắc Lắc. All rights reserved.
-
-This source code is licensed under a proprietary license. You may not copy, modify, distribute, or use this code without explicit permission from the author(s).
+Mã nguồn dự án thuộc quyền sở hữu riêng của Lắc Lắc. Nghiêm cấm mọi hành vi sao chép, chỉnh sửa, phát tán hoặc sử dụng trái phép mã nguồn này khi chưa có sự đồng ý bằng văn bản từ tác giả.
