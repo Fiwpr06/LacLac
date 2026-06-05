@@ -8,13 +8,13 @@ const config: Config = {
         brand: {
           primary: '#FF3B30',      // Red from FoodFlick
           primaryHover: '#E5352A', // Darker Red
-          secondary: '#1A1A1A',    // Dark grey
+          secondary: '#0F172A',    // Slate 900
           accent: '#FF3B30',
           surface: '#FFFFFF',
-          background: '#FAFAFA',   // Light gray background
-          border: '#EAEAEA',
-          error: '#E74C3C',
-          muted: '#8E8E93',        // Grey text
+          background: '#F8FAFC',   // Slate 50 background
+          border: '#F1F5F9',       // Slate 100 border
+          error: '#EF4444',        // Red-500
+          muted: '#64748B',        // Slate 500 text
         },
       },
       fontFamily: {

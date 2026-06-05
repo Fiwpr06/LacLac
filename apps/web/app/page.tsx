@@ -86,6 +86,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
+  const [buttonShaking, setButtonShaking] = useState(false);
 
   // Custom Collections states
   const { user, accessToken } = useAuthStore();
@@ -109,6 +110,19 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
+  // Preload images for upcoming queue items to ensure instant load on next shakes
+  useEffect(() => {
+    if (queue && queue.length > 0) {
+      queue.slice(0, 6).forEach((item) => {
+        const url = getFoodImageUrl(item);
+        if (url) {
+          const img = new window.Image();
+          img.src = url;
+        }
+      });
+    }
+  }, [queue]);
+
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
   const filterSignature = useMemo(() => getFilterSignature(filters), [filters]);
 
@@ -127,11 +141,11 @@ export default function HomePage() {
     editFilters: isEn ? 'Edit Filters' : 'Sửa Bộ Lọc',
     shakeTitle: isEn ? 'Shake & Discover' : 'Lắc & Khám Phá',
     shakeDesc: isEn
-      ? 'Press the big Lắc button below or press Space to simulate shaking. Each shake pulls a random dish from your current filters.'
-      : 'Nhấn nút Lắc lớn bên dưới hoặc phím Space để mô phỏng lắc. Mỗi lần lắc sẽ chọn ngẫu nhiên một món ăn phù hợp với bộ lọc.',
-    shakeBtn: isEn ? 'Shake!' : 'Lắc',
+      ? 'Press the big Lắc button below or press Space to simulate shaking. Each shake pulls a random dish.'
+      : 'Nhấn nút Lắc lớn bên dưới hoặc phím Space để tìm món ngẫu nhiên dựa trên các lựa chọn lọc của bạn.',
+    shakeBtn: isEn ? 'Shake!' : 'Lắc!',
     spaceHint: isEn ? 'Press Shake or Space' : 'Nhấn Lắc hoặc phím Space',
-    currentPool: isEn ? 'Current Pool' : 'Kho Món Ăn',
+    currentPool: isEn ? 'Current Pool' : 'Bộ lọc hiện tại',
     poolCountInfo: (len: number) => {
       if (len > 5) return isEn ? 'Hundreds of matching dishes' : 'Đang có hàng trăm món phù hợp';
       return isEn ? `${len} matching dishes` : `Đang có ${len} món phù hợp`;
@@ -139,14 +153,14 @@ export default function HomePage() {
     noFilters: isEn ? 'No active filters' : 'Chưa có bộ lọc nào',
     apiError: isEn
       ? 'Failed to fetch food from service. Please try again.'
-      : 'Không kết nối được dịch vụ món ăn. Vui lòng thử lại.',
+      : 'Không tìm thấy món nào khớp với bộ lọc của bạn. Hãy thử thay đổi bộ lọc.',
     noImage: isEn ? 'No image' : 'Không có ảnh',
     dish: isEn ? 'Dish' : 'Món ăn',
     main: isEn ? 'Main' : 'Món chính',
     accept: isEn ? 'Favorite' : 'Yêu thích',
     details: isEn ? 'View Details' : 'Xem chi tiết',
-    shakeWait: isEn ? 'Shake to show meals...' : 'Lắc để hiển thị món ăn...',
-    historyTitle: isEn ? 'Shake History' : 'Lịch Sử Lắc',
+    shakeWait: isEn ? 'Click the Lắc button to find something to eat today!' : 'Nhấn nút Lắc để tìm xem hôm nay ăn gì nhé!',
+    historyTitle: isEn ? 'Recent Shakes' : 'Lịch Sử Lắc',
     historyDesc: isEn ? 'Last 10 results' : '10 món gần nhất',
     clearBtn: isEn ? 'Clear' : 'Xóa',
     historyEmpty: isEn
@@ -187,23 +201,11 @@ export default function HomePage() {
     void warmQueue(filterSignature, filters);
   }, [filterSignature, filters, warmQueue]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Just check the code, call shakeNow which we will define soon.
-      // We don't depend on shakeNow for the reference.
-      if (e.code === 'Space' && e.target === document.body) {
-        e.preventDefault();
-        // By emitting an event, we avoid dependency issues. Or we can just use the global state.
-        const btn = document.getElementById('shake-button');
-        if (btn) btn.click();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const shakeNow = async () => {
+  const shakeNow = useCallback(async () => {
     if (loading) return;
+
+    setButtonShaking(true);
+    setTimeout(() => setButtonShaking(false), 600);
 
     const signature = filterSignature;
     const activeFilters: WebFilter = {
@@ -215,7 +217,7 @@ export default function HomePage() {
     setLoading(true);
     try {
       const shakeAudio = new Audio('/sounds/shake.mp3');
-      shakeAudio.volume = 0.5;
+      shakeAudio.volume = 0.4;
       shakeAudio.play().catch(() => {});
     } catch (e) {}
     setErrorText(undefined);
@@ -274,7 +276,7 @@ export default function HomePage() {
       if (selectedFood) {
         try {
           const tingAudio = new Audio('/sounds/ting.mp3');
-          tingAudio.volume = 1.0;
+          tingAudio.volume = 0.8;
           tingAudio.play().catch(() => {});
         } catch (e) {}
         setFood(selectedFood);
@@ -283,7 +285,7 @@ export default function HomePage() {
       } else {
         try {
           const falseAudio = new Audio('/sounds/false.mp3');
-          falseAudio.volume = 0.5;
+          falseAudio.volume = 0.4;
           falseAudio.play().catch(() => {});
         } catch (e) {}
         setErrorText(t.apiError);
@@ -306,57 +308,83 @@ export default function HomePage() {
       console.error(error);
       try {
         const falseAudio = new Audio('/sounds/false.mp3');
-        falseAudio.volume = 0.5;
+        falseAudio.volume = 0.4;
         falseAudio.play().catch(() => {});
       } catch (e) {}
       setErrorText(t.apiError);
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    loading,
+    filterSignature,
+    filters,
+    sessionId,
+    queue,
+    selectedCollections,
+    includeSystem,
+    excludeFoodIds,
+    accessToken,
+    isEn,
+    addHistory,
+    warmQueue,
+    t.apiError
+  ]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        shakeNow();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [shakeNow]);
 
   if (!mounted) return null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-6 md:gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-6 md:gap-8 items-start py-4">
       {/* LEFT PANEL: Sources & Active Filters */}
-      <div className="space-y-6">
+      <div className="space-y-6 flex flex-col">
         {/* Source selector */}
         {user && (
-          <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
-            <h2 className="text-lg font-bold mb-1 text-brand-secondary">
-              {isEn ? 'Shake Sources' : 'Nguồn lắc món'}
+          <div className="glass-panel rounded-3xl p-6 border border-white/40">
+            <h2 className="text-base font-black mb-1 text-slate-800 flex items-center gap-1.5">
+              <span>🎯</span> {isEn ? 'Shake Sources' : 'Nguồn lắc món'}
             </h2>
-            <p className="text-sm text-brand-muted mb-4">
-              {isEn ? 'Choose where Lắc pulls from' : 'Chọn nguồn món ăn để random'}
+            <p className="text-xs text-slate-400 mb-4 font-medium leading-relaxed">
+              {isEn ? 'Choose where Lắc pulls from' : 'Chọn nguồn món ăn để quay ngẫu nhiên'}
             </p>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-2.5 cursor-pointer group select-none">
                 <input
                   type="checkbox"
                   checked={includeSystem}
                   onChange={(e) => setIncludeSystem(e.target.checked)}
-                  className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                  className="rounded-md w-4 h-4 border-slate-200 text-brand-primary focus:ring-brand-primary/20 transition-all duration-200"
                 />
-                <span className="text-sm font-semibold text-slate-700">
+                <span className="text-xs font-bold text-slate-600 group-hover:text-brand-primary transition-colors">
                   {isEn ? 'System Foods' : 'Món ăn Hệ Thống'}
                 </span>
               </label>
-              <div className="border-t border-slate-100 my-2 pt-2">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  {isEn ? 'Custom Collections' : 'Bộ sưu tập cá nhân'}
+
+              <div className="border-t border-slate-100 my-2 pt-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                  {isEn ? 'Custom Collections' : 'Bộ sưu tập của tôi'}
                 </span>
                 {collections.length === 0 ? (
-                  <div className="text-xs text-slate-400 italic">
-                    {isEn ? 'No collections. ' : 'Chưa có bộ sưu tập. '}
+                  <div className="text-xs text-slate-400 italic font-medium">
+                    {isEn ? 'No collections. ' : 'Chưa có bộ nào. '}
                     <Link href="/collections" className="text-brand-primary underline font-bold">
-                      {isEn ? 'Create one' : 'Tạo ngay'}
+                      {isEn ? 'Create one' : 'Tạo mới'}
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1 slim-scrollbar">
                     {collections.map((col) => (
-                      <label key={col._id} className="flex items-center gap-3 cursor-pointer">
+                      <label key={col._id} className="flex items-center gap-2.5 cursor-pointer group select-none">
                         <input
                           type="checkbox"
                           checked={selectedCollections.includes(col._id)}
@@ -367,9 +395,9 @@ export default function HomePage() {
                               setSelectedCollections(selectedCollections.filter((id) => id !== col._id));
                             }
                           }}
-                          className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                          className="rounded-md w-4 h-4 border-slate-200 text-brand-primary focus:ring-brand-primary/20 transition-all duration-200"
                         />
-                        <span className="text-sm text-slate-700 truncate" title={col.name}>
+                        <span className="text-xs text-slate-600 font-medium group-hover:text-brand-primary truncate transition-colors" title={col.name}>
                           {col.name}
                         </span>
                       </label>
@@ -382,17 +410,17 @@ export default function HomePage() {
         )}
 
         {!user && (
-          <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border text-center">
-            <span className="text-2xl mb-2 block">🍱</span>
-            <h3 className="text-sm font-bold text-slate-700 mb-1">
-              {isEn ? 'Custom Food Collections' : 'Tự tạo bộ món ăn'}
+          <div className="glass-panel rounded-3xl p-6 border border-white/40 text-center flex flex-col items-center">
+            <span className="text-3xl mb-3 animate-bounce">🍱</span>
+            <h3 className="text-xs font-black text-slate-800 mb-1.5">
+              {isEn ? 'Custom Collections' : 'Tự tạo bộ món ăn riêng'}
             </h3>
-            <p className="text-xs text-brand-muted mb-4">
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed font-medium">
               {isEn ? 'Sign in to create your own collections and shake from them!' : 'Đăng nhập để tự tạo danh sách món ăn riêng và lắc nhé!'}
             </p>
             <Link
               href="/login"
-              className="w-full py-2 bg-brand-primary/10 text-brand-primary font-bold rounded-lg text-xs hover:bg-brand-primary/20 transition-colors inline-block"
+              className="w-full py-2 bg-gradient-to-r from-brand-primary/10 to-orange-500/10 text-brand-primary font-black rounded-xl text-xs hover:from-brand-primary hover:to-orange-500 hover:text-white transition-all duration-300 shadow-sm"
             >
               {isEn ? 'Sign In' : 'Đăng nhập'}
             </Link>
@@ -400,100 +428,110 @@ export default function HomePage() {
         )}
 
         {/* Active Filters */}
-        <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border">
-          <h2 className="text-lg font-bold mb-1 text-brand-secondary">{t.activeFiltersStr}</h2>
-          <p className="text-sm text-brand-muted mb-6">{t.filterDesc}</p>
+        <div className="glass-panel rounded-3xl p-6 border border-white/40">
+          <h2 className="text-base font-black mb-1 text-slate-800 flex items-center gap-1.5">
+            <span>⚙️</span> {t.activeFiltersStr}
+          </h2>
+          <p className="text-xs text-slate-400 mb-4 font-medium leading-relaxed">{t.filterDesc}</p>
 
-        <div className="space-y-4">
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t.cuisine}</div>
-              <div className="text-xs text-gray-500 mt-1">{formatList(filters.cuisineType)}</div>
-            </div>
-            <div className="w-4 h-4 rounded-sm border border-gray-300 bg-white" />
-          </div>
-
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t.price}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {filters.priceRange ? tPriceRange(filters.priceRange, isEn) : t.anyPrice}
+          <div className="space-y-2 max-h-[220px] overflow-y-auto slim-scrollbar pr-0.5">
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.cuisine}</div>
+                <div className="text-xs font-bold text-slate-700 mt-0.5 truncate max-w-[190px]">{formatList(filters.cuisineType)}</div>
               </div>
             </div>
-            <div className="w-4 h-4 rounded-sm border border-gray-300 bg-white" />
-          </div>
 
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t.allergens}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {formatList(filters.allergenExclude)}
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.price}</div>
+                <div className="text-xs font-bold text-slate-700 mt-0.5">
+                  {filters.priceRange ? tPriceRange(filters.priceRange, isEn) : t.anyPrice}
+                </div>
               </div>
             </div>
-            <div className="w-4 h-4 rounded-sm border border-gray-300 bg-white" />
-          </div>
 
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t.mealType}</div>
-              <div className="text-xs text-gray-500 mt-1">{formatList(filters.mealType)}</div>
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.allergens}</div>
+                <div className="text-xs font-bold text-slate-700 mt-0.5 truncate max-w-[190px]">
+                  {formatList(filters.allergenExclude)}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.mealType}</div>
+                <div className="text-xs font-bold text-slate-700 mt-0.5">{formatList(filters.mealType)}</div>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.diet}</div>
+                <div className="text-xs font-bold text-slate-700 mt-0.5">{formatList(filters.dietTag)}</div>
+              </div>
             </div>
           </div>
 
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors">
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t.diet}</div>
-              <div className="text-xs text-gray-500 mt-1">{formatList(filters.dietTag)}</div>
-            </div>
-          </div>
+          <Link
+            href="/filter"
+            className="mt-4 w-full py-2.5 bg-gradient-to-r from-brand-primary to-orange-500 text-white rounded-xl text-xs font-bold flex items-center justify-center hover:shadow-lg hover:shadow-brand-primary/20 hover:scale-102 active:scale-98 transition-all duration-200"
+          >
+            {t.editFilters}
+          </Link>
         </div>
-
-        <Link
-          href="/filter"
-          className="mt-6 w-full py-3 bg-brand-primary text-white rounded-xl font-semibold flex items-center justify-center hover:bg-brand-primaryHover transition-colors shadow-sm"
-        >
-          {t.editFilters}
-        </Link>
       </div>
-    </div>
 
       {/* CENTER PANEL: Shake Area */}
-      <div className="bg-white rounded-2xl shadow-card p-8 border border-brand-border flex flex-col items-center min-h-[600px] relative">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-heading font-extrabold text-brand-secondary mb-3">
+      <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/40 flex flex-col items-center min-h-[580px] relative">
+        <div className="text-center mb-6 max-w-lg">
+          <h1 className="text-3xl md:text-4xl font-heading font-black tracking-tight text-slate-800 mb-2">
             {t.shakeTitle}
           </h1>
-          <p className="text-brand-muted text-sm max-w-sm mx-auto">{t.shakeDesc}</p>
+          <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">{t.shakeDesc}</p>
         </div>
 
         {/* Shake Button Section */}
-        <div className="flex flex-col items-center mb-10 w-full">
-          <div className="flex flex-col xl:flex-row items-center gap-8 w-full max-w-2xl mx-auto justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <button
-                onClick={shakeNow}
-                disabled={loading}
-                className="w-32 h-32 rounded-full bg-brand-primary text-white font-bold text-2xl shadow-[0_8px_30px_rgba(255,59,48,0.3)] hover:shadow-[0_8px_30px_rgba(255,59,48,0.45)] hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center disabled:opacity-50 disabled:hover:translate-y-0"
-              >
-                {loading ? (
-                  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <span className="font-heading tracking-tight">{t.shakeBtn}</span>
+        <div className="flex flex-col items-center mb-8 w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-6 w-full max-w-xl mx-auto justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative flex items-center justify-center">
+                {/* Ripple wave effect using hardware-accelerated animate-ping */}
+                {!loading && (
+                  <div className="absolute inset-0 rounded-full bg-brand-primary/20 animate-ping pointer-events-none scale-110" />
                 )}
-              </button>
-              <span className="text-sm text-gray-500 font-medium">{t.spaceHint}</span>
+                <button
+                  onClick={shakeNow}
+                  disabled={loading}
+                  className={`relative z-10 w-36 h-36 rounded-full bg-gradient-to-tr from-brand-primary to-orange-500 text-white font-black text-2xl shadow-[0_12px_40px_rgba(255,59,48,0.35)] hover:shadow-[0_18px_50px_rgba(255,59,48,0.5)] hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center disabled:opacity-50 disabled:hover:scale-100 select-none cursor-pointer ${
+                    buttonShaking ? 'animate-shake-bounce' : 'animate-glow-pulse'
+                  }`}
+                >
+                  {loading ? (
+                    <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl mb-1.5">🎲</span>
+                      <span className="font-heading font-black tracking-tight text-sm uppercase">{t.shakeBtn}</span>
+                    </div>
+                  )}
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.spaceHint}</span>
             </div>
 
-            <div className="flex-1 bg-gray-50/50 p-5 rounded-2xl border border-gray-100 w-full">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-semibold text-gray-700">{t.currentPool}</span>
-                <span className="text-xs text-gray-400">{t.poolCountInfo(queue.length)}</span>
+            <div className="flex-1 bg-slate-50/50 p-4.5 rounded-2xl border border-slate-100/60 w-full">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-black text-slate-700 uppercase tracking-wider">{t.currentPool}</span>
+                <span className="text-[11px] font-bold text-slate-400">{t.poolCountInfo(queue.length)}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {safeArray(filters.cuisineType).map((c) => (
                   <span
                     key={c}
-                    className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600"
+                    className="px-2 py-0.5 bg-white border border-slate-200/80 rounded-md text-[10px] font-bold text-slate-500 uppercase tracking-wide"
                   >
                     {c}
                   </span>
@@ -501,18 +539,18 @@ export default function HomePage() {
                 {safeArray(filters.dietTag).map((d) => (
                   <span
                     key={d}
-                    className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600"
+                    className="px-2 py-0.5 bg-white border border-slate-200/80 rounded-md text-[10px] font-bold text-slate-500 uppercase tracking-wide"
                   >
                     {d}
                   </span>
                 ))}
                 {filters.priceRange && (
-                  <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600">
+                  <span className="px-2 py-0.5 bg-white border border-slate-200/80 rounded-md text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                     {tPriceRange(filters.priceRange, isEn)}
                   </span>
                 )}
                 {activeFilterCount === 0 && (
-                  <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-400 italic">
+                  <span className="px-2 py-0.5 bg-white border border-slate-200/80 rounded-md text-[10px] font-medium text-slate-400 italic">
                     {t.noFilters}
                   </span>
                 )}
@@ -522,38 +560,35 @@ export default function HomePage() {
         </div>
 
         {errorText && (
-          <div className="p-4 bg-red-50 text-red-500 rounded-xl mb-6 text-sm">{errorText}</div>
+          <div className="p-4 bg-rose-50 text-brand-primary rounded-xl mb-6 text-xs font-semibold max-w-md text-center border border-rose-100 flex items-center gap-2">
+            <span>⚠️</span> {errorText}
+          </div>
         )}
 
         {/* Display Match */}
         {food ? (
-          <div className="w-full max-w-2xl bg-white border border-gray-100 shadow-sm rounded-2xl flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-500">
-            <div className="relative w-full md:w-56 h-56 bg-gray-100 shrink-0">
+          <div className="w-full max-w-2xl bg-white border border-slate-100 shadow-xl shadow-slate-100/30 rounded-3xl flex flex-col sm:flex-row overflow-hidden animate-fade-in-up hover:shadow-2xl transition-all duration-300">
+            <div className="relative w-full sm:w-56 h-56 sm:h-auto bg-slate-100 shrink-0 border-r border-slate-100/50">
               {getFoodImageUrl(food) ? (
-                <Image src={getFoodImageUrl(food)} alt={food.name?.vi ?? 'Food Image'} fill className="object-cover" />
+                <Image src={getFoodImageUrl(food)} alt={food.name?.vi ?? 'Food Image'} fill className="object-cover hover:scale-105 transition-transform duration-500" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-semibold">
                   {t.noImage}
                 </div>
               )}
             </div>
-            <div className="p-6 flex flex-col justify-between flex-1">
+            <div className="p-8 flex flex-col justify-between flex-1 min-w-0">
               <div>
-                <div className="flex justify-between items-start gap-4 mb-1">
-                  <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                <div className="flex justify-between items-start gap-3 mb-2 min-w-0">
+                  <h3 className="text-xl font-black text-slate-800 truncate" title={food.name?.vi}>
                     {food.name?.vi}
-                    {(food as any).isCustom && (
-                      <span className="ml-2 px-2 py-0.5 bg-brand-primary text-white text-[10px] font-bold rounded uppercase align-middle">
-                        Cá nhân
-                      </span>
-                    )}
                   </h3>
-                  <span className="font-semibold text-lg text-brand-primary shrink-0">
+                  <span className="font-black text-lg text-brand-primary shrink-0">
                     {tPriceRange(food.priceRange, isEn)}
                   </span>
                 </div>
-                <div className="text-sm text-gray-500 flex items-center gap-2 mb-4">
-                  <span>
+                <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mb-3.5 uppercase tracking-wide">
+                  <span className="truncate">
                     {(food as any).isCustom 
                       ? `${isEn ? 'Collection' : 'Bộ sưu tập'}: ${(food as any).collectionName}`
                       : (typeof food.category === 'string' ? t.dish : (typeof food.category?.name === 'string' ? food.category.name : food.category?.name?.vi) || t.dish)
@@ -561,21 +596,26 @@ export default function HomePage() {
                   </span>
                   <span>•</span>
                   <span>{t.main}</span>
+                  {(food as any).isCustom && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-brand-primary text-white text-[8px] font-black rounded uppercase tracking-wider shrink-0">
+                      Cá nhân
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-1 mb-4">
                   {food.tags?.vi?.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium"
+                      className="px-2 py-0.5 bg-slate-50 text-slate-500 border border-slate-100 rounded text-[10px] font-bold"
                     >
-                      {tag}
+                      #{tag}
                     </span>
                   ))}
                 </div>
 
                 {food.description?.vi && (
-                  <p className="mt-3 text-gray-500 text-sm leading-relaxed line-clamp-2 pr-4">
+                  <p className="text-slate-500 text-xs leading-relaxed line-clamp-3 mb-4 font-medium">
                     {food.description.vi}
                   </p>
                 )}
@@ -585,22 +625,22 @@ export default function HomePage() {
                   const ings: string[] = Array.isArray(rawIngs) ? rawIngs : (rawIngs?.vi || []);
                   if (ings.length === 0) return null;
                   return (
-                    <div className="mb-6">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                    <div className="mb-4">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
                         {isEn ? 'Ingredients' : 'Nguyên liệu'}
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ings.slice(0, 8).map((ing: any) => (
+                      <div className="flex flex-wrap gap-1">
+                        {ings.slice(0, 5).map((ing: any) => (
                           <span
                             key={ing}
-                            className="px-2 py-1 bg-brand-surface border border-brand-border rounded text-[11px] text-gray-600"
+                            className="px-2 py-0.5 bg-slate-50 border border-slate-200/50 rounded text-[9px] font-bold text-slate-500"
                           >
                             {ing}
                           </span>
                         ))}
-                        {ings.length > 8 && (
-                          <span className="px-2 py-1 text-[11px] text-gray-400">
-                            +{ings.length - 8}
+                        {ings.length > 5 && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold text-slate-400">
+                            +{ings.length - 5}
                           </span>
                         )}
                       </div>
@@ -610,8 +650,8 @@ export default function HomePage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <button className="flex-1 bg-brand-primary text-white py-2.5 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-brand-primaryHover transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <button className="flex-1 bg-gradient-to-r from-brand-primary to-orange-500 text-white py-2.5 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 hover:shadow-lg hover:shadow-brand-primary/20 hover:scale-102 active:scale-98 transition-all duration-200">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                   {t.accept}
@@ -620,67 +660,67 @@ export default function HomePage() {
             </div>
           </div>
         ) : (
-          <div className="w-full max-w-2xl h-56 bg-gray-50 border border-gray-100 border-dashed rounded-2xl flex items-center justify-center text-gray-400">
-            {t.shakeWait}
+          <div className="w-full max-w-2xl h-64 bg-slate-50/50 border border-slate-200/60 border-dashed rounded-3xl flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+            <span className="text-4xl mb-4 animate-float">🍲</span>
+            <p className="text-sm font-bold text-slate-400 max-w-sm leading-relaxed">{t.shakeWait}</p>
           </div>
         )}
       </div>
 
       {/* RIGHT PANEL: Shake History */}
-      <div className="bg-white rounded-2xl shadow-card p-6 border border-brand-border block">
-        <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-3xl p-6 border border-white/40 flex flex-col">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-brand-secondary leading-tight">
-              {t.historyTitle}
+            <h2 className="text-base font-black text-slate-800 leading-none flex items-center gap-1.5">
+              <span>⏳</span> {t.historyTitle}
             </h2>
-            <p className="text-xs text-brand-muted mt-0.5">{t.historyDesc}</p>
+            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">{t.historyDesc}</p>
           </div>
           <button
             onClick={clearHistory}
-            className="text-xs px-3 py-1.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors font-medium"
+            className="text-[10px] px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 hover:text-brand-primary text-slate-500 border border-slate-200/50 transition-all font-bold uppercase tracking-wider"
           >
             {t.clearBtn}
           </button>
         </div>
 
         {history.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 slim-scrollbar">
             {history.slice(0, 10).map((hItem, idx) => (
-              <div key={`${hItem._id}-${idx}`} className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-gray-100">
+              <div key={`${hItem._id}-${idx}`} className="flex items-center gap-3 p-2 bg-white/40 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-100 relative border border-slate-200/40">
                   {getFoodImageUrl(hItem) && (
                     <Image
                       src={getFoodImageUrl(hItem)}
                       alt={hItem.name?.vi ?? 'Food'}
-                      width={48}
-                      height={48}
-                      className="object-cover w-full h-full"
+                      fill
+                      className="object-cover"
                     />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-gray-900 truncate" title={hItem.name?.vi}>
+                  <h4 className="text-xs font-bold text-slate-800 truncate" title={hItem.name?.vi}>
                     {hItem.name?.vi}
                   </h4>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                  <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
                     {tPriceRange(hItem.priceRange, isEn)} •{' '}
                     {typeof hItem.category === 'string' ? t.dish : (typeof hItem.category?.name === 'string' ? hItem.category.name : hItem.category?.name?.vi) || t.dish}
                   </p>
                 </div>
-                <button className="px-3 py-1 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-bold hover:bg-brand-primary/20 shrink-0">
+                <button className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-brand-primary rounded-lg text-[10px] font-bold transition-all shrink-0">
                   {t.saveBtn}
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="py-10 text-center text-sm text-gray-400">{t.historyEmpty}</div>
+          <div className="py-16 text-center text-xs text-slate-400 font-semibold">{t.historyEmpty}</div>
         )}
 
         {history.length > 0 && (
           <Link
             href="/history"
-            className="block text-center w-full mt-6 py-2.5 text-sm font-medium bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors"
+            className="block text-center w-full mt-4 py-2 text-xs font-bold bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-600 transition-colors"
           >
             {t.viewFullHistory}
           </Link>

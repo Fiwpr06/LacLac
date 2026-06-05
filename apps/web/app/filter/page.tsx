@@ -11,9 +11,9 @@ type Option<T extends string> = {
 };
 
 const PRICE_OPTIONS = [
-  { value: 'cheap', label: 'Tiết kiệm' },
-  { value: 'medium', label: 'Cân bằng' },
-  { value: 'expensive', label: 'Thoải mái' },
+  { value: 'cheap', label: 'Tiết kiệm 💰' },
+  { value: 'medium', label: 'Cân bằng ⚖️' },
+  { value: 'expensive', label: 'Thoải mái 💎' },
 ] as const;
 
 const BUDGET_OPTIONS = [
@@ -24,29 +24,29 @@ const BUDGET_OPTIONS = [
 ] as const;
 
 const DISH_OPTIONS = [
-  { value: 'liquid', label: 'Nước' },
-  { value: 'dry', label: 'Khô' },
-  { value: 'fried_grilled', label: 'Chiên / Nướng' },
+  { value: 'liquid', label: 'Món nước 🍜' },
+  { value: 'dry', label: 'Món khô 🥖' },
+  { value: 'fried_grilled', label: 'Chiên / Nướng 🍳' },
 ] as const;
 
 const CUISINE_OPTIONS = [
-  { value: 'vietnamese', label: 'Việt Nam' },
-  { value: 'asian', label: 'Châu Á' },
-  { value: 'european', label: 'Châu Âu' },
+  { value: 'vietnamese', label: 'Việt Nam 🇻🇳' },
+  { value: 'asian', label: 'Châu Á 🌏' },
+  { value: 'european', label: 'Châu Âu 🇪🇺' },
 ] as const;
 
 const MEAL_OPTIONS = [
-  { value: 'breakfast', label: 'Sáng' },
-  { value: 'lunch', label: 'Trưa' },
-  { value: 'dinner', label: 'Tối' },
-  { value: 'snack', label: 'Ăn vặt' },
+  { value: 'breakfast', label: 'Sáng 🌅' },
+  { value: 'lunch', label: 'Trưa ☀️' },
+  { value: 'dinner', label: 'Tối 🌙' },
+  { value: 'snack', label: 'Ăn vặt 🍟' },
 ] as const;
 
 const DIET_OPTIONS = [
-  { value: 'vegetarian', label: 'Ăn chay' },
-  { value: 'vegan', label: 'Thuần chay' },
-  { value: 'keto', label: 'Keto' },
-  { value: 'clean', label: 'Eat clean' },
+  { value: 'vegetarian', label: 'Ăn chay 🥬' },
+  { value: 'vegan', label: 'Thuần chay 🌱' },
+  { value: 'keto', label: 'Keto 🥩' },
+  { value: 'clean', label: 'Eat clean 🥗' },
 ] as const;
 
 const COOKING_OPTIONS = [
@@ -59,22 +59,22 @@ const COOKING_OPTIONS = [
 ] as const;
 
 const CONTEXT_OPTIONS = [
-  { value: 'solo', label: 'Một mình' },
-  { value: 'date', label: 'Hẹn hò' },
-  { value: 'group', label: 'Nhóm bạn' },
-  { value: 'travel', label: 'Đi chơi' },
-  { value: 'office', label: 'Công sở' },
+  { value: 'solo', label: 'Một mình 🙋‍♂️' },
+  { value: 'date', label: 'Hẹn hò 👩‍❤️‍👨' },
+  { value: 'group', label: 'Nhóm bạn 👥' },
+  { value: 'travel', label: 'Đi chơi 🎒' },
+  { value: 'office', label: 'Công sở 💼' },
 ] as const;
 
 const pillBase =
-  'rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40';
+  'rounded-2xl border px-4 py-2.5 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 select-none cursor-pointer active:scale-95';
 
 const pillClass = (isActive: boolean): string => {
   if (isActive) {
-    return `${pillBase} border-brand-primary bg-brand-primary text-white`;
+    return `${pillBase} border-transparent bg-gradient-to-r from-brand-primary to-orange-500 text-white shadow-md shadow-brand-primary/15`;
   }
 
-  return `${pillBase} border-brand-secondary/20 bg-white text-brand-secondary hover:border-brand-primary/40`;
+  return `${pillBase} border-slate-200 bg-white text-slate-600 hover:border-brand-primary/30 hover:text-brand-primary`;
 };
 
 const countActiveFilters = (filters: WebFilter): number => {
@@ -105,8 +105,8 @@ function ToggleGroup<T extends string>({
   onSelect: (value?: T) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <h2 className="font-bold text-brand-secondary">{title}</h2>
+    <div className="space-y-2.5">
+      <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">{title}</h2>
       <div className="flex flex-wrap gap-2">
         {options.map((item) => {
           const active = value === item.value;
@@ -116,7 +116,7 @@ function ToggleGroup<T extends string>({
               onClick={() => {
                 try {
                   const tickAudio = new Audio('/sounds/tick-filter.mp3');
-                  tickAudio.volume = 0.5;
+                  tickAudio.volume = 0.4;
                   tickAudio.play().catch(() => {});
                 } catch (e) {}
                 onSelect(active ? undefined : item.value);
@@ -138,18 +138,21 @@ export default function FilterPage(): JSX.Element {
   const allergenText = (filters.allergenExclude ?? []).join(', ');
 
   return (
-    <section className="space-y-4">
-      <h1 className="text-3xl font-black text-brand-secondary">Bộ lọc thông minh</h1>
-      <p className="text-brand-secondary/70">
-        Chọn nhanh theo ngân sách, kiểu món, ẩm thực, bữa ăn và ngữ cảnh trước khi lắc.
-      </p>
+    <section className="max-w-4xl mx-auto py-6 space-y-6 px-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-heading font-black text-slate-800 tracking-tight">Bộ lọc thông minh</h1>
+          <p className="text-slate-400 text-xs md:text-sm font-medium mt-1">
+            Chọn nhanh theo ngân sách, kiểu món, ẩm thực, bữa ăn và ngữ cảnh trước khi lắc.
+          </p>
+        </div>
+        <div className="px-4 py-2 bg-gradient-to-r from-brand-primary/10 to-orange-500/10 border border-brand-primary/10 text-brand-primary rounded-2xl text-xs font-bold self-start">
+          Đang bật {activeFilterCount} điều kiện lọc
+        </div>
+      </div>
 
-      <p className="text-sm font-semibold text-brand-secondary/70">
-        Đang bật {activeFilterCount} điều kiện lọc.
-      </p>
-
-      <div className="lac-card space-y-6 p-5">
-        <div className="grid gap-5 md:grid-cols-2">
+      <div className="glass-panel rounded-3xl p-6 md:p-8 border border-white/40 space-y-8">
+        <div className="grid gap-6 md:grid-cols-2">
           <ToggleGroup
             title="Khoảng giá"
             options={PRICE_OPTIONS}
@@ -207,51 +210,56 @@ export default function FilterPage(): JSX.Element {
           />
         </div>
 
-        <div className="space-y-2">
-          <h2 className="font-bold text-brand-secondary">Dị ứng cần loại trừ</h2>
-          <input
-            value={allergenText}
-            onChange={(event) => {
-              const next = event.target.value
-                .split(',')
-                .map((item) => item.trim())
-                .filter(Boolean);
+        <div className="grid gap-6 md:grid-cols-2 pt-4 border-t border-slate-100/60">
+          <div className="space-y-2.5">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Dị ứng cần loại trừ</h2>
+            <input
+              value={allergenText}
+              onChange={(event) => {
+                const next = event.target.value
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean);
 
-              setFilter('allergenExclude', next.length > 0 ? next : undefined);
-            }}
-            placeholder="Ví dụ: đậu phộng, tôm, sữa"
-            className="w-full rounded-xl border border-brand-secondary/20 bg-white px-4 py-2 text-sm text-brand-secondary outline-none transition focus:border-brand-primary"
-          />
-          <p className="text-xs text-brand-secondary/60">
-            Tách bằng dấu phẩy để loại trừ nhiều dị ứng.
-          </p>
+                setFilter('allergenExclude', next.length > 0 ? next : undefined);
+              }}
+              placeholder="Ví dụ: đậu phộng, tôm, sữa"
+              className="w-full rounded-2xl px-4 py-3 text-xs text-slate-700 outline-none border border-slate-200 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all font-bold placeholder:text-slate-400"
+            />
+            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+              Tách các thành phần bằng dấu phẩy để loại trừ nhiều nhóm dị ứng cùng lúc.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Khóa cứng danh mục (Nâng cao)</h2>
+            <input
+              value={filters.category ?? ''}
+              onChange={(event) => {
+                const next = event.target.value.trim();
+                setFilter('category', next || undefined);
+              }}
+              placeholder="ObjectId category"
+              className="w-full rounded-2xl px-4 py-3 text-xs text-slate-700 outline-none border border-slate-200 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all font-bold placeholder:text-slate-400"
+            />
+            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+              Nhập mã ObjectId danh mục hệ thống để cố định bộ lắc chỉ chọn món ăn thuộc danh mục này.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <h2 className="font-bold text-brand-secondary">Category ID (nâng cao)</h2>
-          <input
-            value={filters.category ?? ''}
-            onChange={(event) => {
-              const next = event.target.value.trim();
-              setFilter('category', next || undefined);
-            }}
-            placeholder="ObjectId category nếu cần khóa cứng theo danh mục"
-            className="w-full rounded-xl border border-brand-secondary/20 bg-white px-4 py-2 text-sm text-brand-secondary outline-none transition focus:border-brand-primary"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-4 pt-6 border-t border-slate-100/60">
           <button
             onClick={reset}
-            className="rounded-xl bg-brand-secondary px-4 py-2 font-bold text-white"
+            className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg active:scale-95 transition-all select-none cursor-pointer uppercase tracking-wider"
           >
-            Reset toàn bộ
+            Reset toàn bộ bộ lọc
           </button>
           <Link
             href="/"
-            className="rounded-xl border border-brand-primary/30 bg-orange-50 px-4 py-2 font-bold text-brand-primary"
+            className="px-6 py-3 bg-gradient-to-r from-brand-primary to-orange-500 text-white font-black text-xs rounded-xl shadow-md shadow-brand-primary/15 hover:shadow-lg hover:shadow-brand-primary/25 active:scale-95 transition-all select-none cursor-pointer uppercase tracking-wider"
           >
-            Quay lại màn lắc
+            Quay lại màn lắc chính
           </Link>
         </div>
       </div>

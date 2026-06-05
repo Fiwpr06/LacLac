@@ -30,7 +30,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
         const configService = args[0] as ConfigService;
         return {
           config: {
-            url: configService.get<string>('REDIS_URI', 'redis://localhost:6379'),
+            url: configService.get<string>('REDIS_URL') || configService.get<string>('REDIS_URI') || 'redis://localhost:6379',
           },
         };
       },
