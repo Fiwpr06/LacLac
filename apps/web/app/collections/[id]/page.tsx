@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../../src/store/auth-store';
@@ -16,10 +16,9 @@ import {
   uploadImage,
 } from '../../../src/lib/api';
 
-type Params = Promise<{ id: string }>;
+type Params = { id: string };
 
-export default function CollectionDetailPage(props: { params: Params }) {
-  const params = use(props.params);
+export default function CollectionDetailPage({ params }: { params: Params }) {
   const collectionId = params.id;
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
@@ -64,7 +63,7 @@ export default function CollectionDetailPage(props: { params: Params }) {
     loginRequired: isEn ? 'Please sign in to view details.' : 'Vui lòng đăng nhập để xem chi tiết.',
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!accessToken || !collectionId) return;
     try {
       setLoading(true);
@@ -80,7 +79,7 @@ export default function CollectionDetailPage(props: { params: Params }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken, collectionId, router]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -88,7 +87,7 @@ export default function CollectionDetailPage(props: { params: Params }) {
       return;
     }
     loadData();
-  }, [accessToken, collectionId]);
+  }, [accessToken, loadData]);
 
   const handleOpenAddModal = () => {
     setEditingFoodId(null);

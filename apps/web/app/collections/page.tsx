@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../src/store/auth-store';
@@ -60,7 +60,7 @@ export default function CollectionsPage() {
     saveSuccess: isEn ? 'Collection saved!' : 'Đã lưu bộ món ăn!',
   };
 
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     if (!accessToken) return;
     try {
       setLoading(true);
@@ -71,7 +71,7 @@ export default function CollectionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -79,7 +79,7 @@ export default function CollectionsPage() {
       return;
     }
     fetchCollections();
-  }, [accessToken]);
+  }, [accessToken, fetchCollections]);
 
   const handleOpenAddModal = () => {
     setEditingId(null);

@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Lắc Lắc",
-    "slug": "mobile-app",
+    "slug": "lac-lac",
     "icon": "./assets/icon.png",
     "extra": {
       "eas": {
-        "projectId": "61b55d8d-1d87-4a31-816d-c2d00a977c71"
+        "projectId": "3aba3310-23c0-4cd9-ad75-57a2d464ffd7"
       }
     },
     "ios": {
